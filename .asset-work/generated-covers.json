@@ -1,0 +1,25 @@
+{
+  "mode": "built-in image_gen",
+  "requests": 3,
+  "retries": 0,
+  "assets": [
+    {
+      "name": "laptop-code",
+      "prompt": "Use case: photorealistic-natural\nAsset type: website editorial cover photograph\nPrimary request: create an original natural photographic image of a dark laptop showing abstract unreadable lines of code on a clean navy and gray workspace.\nScene/backdrop: a quiet contemporary desk, uncluttered, dark navy and charcoal surroundings.\nSubject: one open unbranded laptop on a clean gray desk, its screen showing only softly blurred, unreadable abstract code-like lines.\nComposition/framing: landscape 3:2 aspect ratio, wide editorial composition, natural perspective from a slightly elevated side angle, the complete laptop is visible.\nLighting/mood: atmospheric cool window light, subdued soft shadows, focused and calm, realistic photography with subtle texture.\nColor palette: navy, charcoal gray, cool blue highlights, restrained neutral whites.\nConstraints: no people, no hands, no readable text, no logos, no branding, no overlay text, no watermark; photograph only, no website layout, no interface mockup.",
+      "mode": "built-in image_gen",
+      "savedPath": "C:/Users/JAFEER ABDULLAH/Desktop/Codomax Tasks/.asset-work/laptop-code.png"
+    },
+    {
+      "name": "architecture",
+      "prompt": "Use case: photorealistic-natural\nAsset type: website editorial cover photograph\nPrimary request: create an original natural architectural photograph of white contemporary architectural geometry under a subtle light blue sky.\nSubject: a fictional contemporary building, with crisp white intersecting geometric planes and clean modern forms; do not depict any specific real building.\nComposition/framing: landscape 3:2 aspect ratio, close architectural composition emphasizing geometry and form, elegant editorial framing.\nLighting/mood: soft clear daylight with precise geometric shadows; calm, refined, realistic architectural photography.\nColor palette: neutral white, soft gray shadows, subtle cool light blue sky.\nMaterials/textures: realistic lightly textured white concrete, sharp construction details.\nConstraints: no people, no signage, no logos, no readable text, no overlay text, no watermark; photograph only, no website layout, no illustration.",
+      "mode": "built-in image_gen",
+      "savedPath": "C:/Users/JAFEER ABDULLAH/Desktop/Codomax Tasks/.asset-work/architecture.png"
+    },
+    {
+      "name": "writing-desk",
+      "prompt": "Use case: photorealistic-natural\nAsset type: website editorial cover photograph\nPrimary request: create an original natural overhead photograph of an open cream notebook and a cup of coffee on a gray wood writing desk.\nSubject: a simple open cream notebook with blank pages, one understated pen, and a plain ceramic cup of black coffee.\nComposition/framing: landscape 3:2 aspect ratio, overhead editorial flat lay with balanced spacing and an uncluttered gray wood desk surface.\nLighting/mood: calm soft natural window light, gentle authentic shadows, productive writing atmosphere, realistic photography with natural imperfections.\nColor palette: cream paper, cool gray wood, neutral ceramic, restrained dark coffee.\nMaterials/textures: subtle wood grain, matte paper fibers and ceramic surface.\nConstraints: no people, no hands, no writing or readable text, no logos, no branding, no overlay text, no watermark; photograph only, no website layout, no interface mockup.",
+      "mode": "built-in image_gen",
+      "savedPath": "C:/Users/JAFEER ABDULLAH/Desktop/Codomax Tasks/.asset-work/writing-desk.png"
+    }
+  ]
+}
