@@ -1,4 +1,4 @@
-/* Codomax Journal — Module 2 frontend integration.
+/* Codomax Journal — Express frontend integration.
  * Real accounts and blog operations use BlogAPI (api.js).
  * The original Module 1 sample workspace remains available as ?demo=1.
  * Passwords are never stored by the frontend.
@@ -253,9 +253,9 @@
     meta.append(time, dot, element("span", "", `${post.readMinutes} min read`));
     const author = element("span", "author");
     author.append(element("span", "avatar avatar-small", initials(post.author)), document.createTextNode(post.author));
-    const read = element("button", "read-more", "Read more ");
-    read.type = "button";
-    read.dataset.readPost = post.id;
+    const read = element(post.authorId ? "a" : "button", "read-more", "Read more ");
+    if (post.authorId) read.href = `blog-details.html?id=${encodeURIComponent(post.id)}`;
+    else { read.type = "button"; read.dataset.readPost = post.id; }
     read.setAttribute("aria-label", `Read more: ${post.title}`);
     read.append(icon("chevron"));
     const bottom = element("div", "card-bottom");
@@ -305,6 +305,31 @@
       message.setAttribute("role", "status");
       grid.before(message);
     }
+  }
+
+  async function initBlogDetails() {
+    const article = $("#blog-details");
+    if (!article) return;
+    const message = $("#blog-details-message");
+    const id = params.get("id");
+    if (!id) { showMessage(message, "Choose a blog from the journal to read it.", true); return; }
+    try {
+      const post = await API.details(id);
+      document.title = `${post.title} — Codomax Journal`;
+      $("#blog-details-title").textContent = post.title;
+      $("#blog-details-category").textContent = post.category;
+      $("#blog-details-author").textContent = post.author;
+      const time = $("#blog-details-date");
+      time.dateTime = post.createdAt;
+      time.textContent = formatDate(post.date);
+      const image = $("#blog-details-image");
+      delete image.dataset.fallbackApplied;
+      image.alt = post.imageAlt;
+      image.src = post.imageUrl;
+      $("#blog-details-content").replaceChildren(...post.content.split(/\n\s*\n/).filter(Boolean).map(paragraph => element("p", "", paragraph)));
+      article.hidden = false;
+      message.hidden = true;
+    } catch (error) { showMessage(message, error.status === 404 ? "Blog not found. It may have been removed or is not published." : error.message, true); }
   }
 
   function fieldError(field, message) {
@@ -630,6 +655,7 @@
   $$("img").forEach(watchImage);
   $$("[data-year]").forEach(node => { node.textContent = new Date().getFullYear(); });
   initHome();
+  initBlogDetails();
   initAccountForm("login");
   initAccountForm("register");
   initDashboard();

@@ -2,20 +2,15 @@
 
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs/promises");
-const { mkdtempSync } = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
 const { randomBytes } = require("node:crypto");
 const bcrypt = require("bcryptjs");
+const createSupabaseFixture = require("./helpers/supabaseFixture");
 
-const dataDirectory = mkdtempSync(path.join(os.tmpdir(), "codomax-module2-test-"));
-process.env.DATA_DIR = dataDirectory;
+const fixture = createSupabaseFixture();
 process.env.JWT_SECRET = randomBytes(48).toString("hex");
-const app = require("../server");
-let server, base, token, otherToken, blogId;
+let app, server, base, token, otherToken, blogId;
 const password = "Testing-password-123";
-const blogInput = { title: "A working backend", category: "Web Development", content: "This story is persisted in JSON storage.", author: "Jafeer Abdullah", imageUrl: "images/code-workspace.jpg" };
+const blogInput = { title: "A working backend", category: "Web Development", content: "This story is saved through the Supabase client.", author: "Jafeer Abdullah", imageUrl: "images/code-workspace.jpg" };
 
 async function start() {
   server = await new Promise(resolve => {
@@ -32,12 +27,15 @@ async function call(route, { method = "GET", body, bearer, raw } = {}) {
   return { status: response.status, body: await response.json() };
 }
 
-before(start);
+before(async () => {
+  process.env.SUPABASE_URL = await fixture.start();
+  process.env.SUPABASE_SERVICE_ROLE_KEY = fixture.key;
+  app = require("../server");
+  await start();
+});
 after(async () => {
   await new Promise(resolve => server.close(resolve));
-  const allowedPrefix = path.join(os.tmpdir(), "codomax-module2-test-");
-  assert.ok(dataDirectory.startsWith(allowedPrefix));
-  await fs.rm(dataDirectory, { recursive: true, force: true });
+  await fixture.close();
 });
 
 test("server root, static frontend, missing routes, invalid JSON and body limits", async () => {
@@ -60,10 +58,11 @@ test("registration normalizes email, hashes passwords and rejects duplicate acco
   const registered = await call("/api/auth/register", { method: "POST", body: { name: "Jafeer Abdullah", email: " JAFEER@example.com ", password } });
   assert.equal(registered.status, 201);
   assert.equal(registered.body.message, "User registered successfully");
-  const users = JSON.parse(await fs.readFile(path.join(dataDirectory, "users.json"), "utf8"));
+  const users = fixture.tables.users;
   assert.equal(users[0].email, "jafeer@example.com");
   assert.notEqual(users[0].password, password);
   assert.ok(await bcrypt.compare(password, users[0].password));
+  assert.ok(!JSON.stringify(registered.body).includes(users[0].password));
   assert.equal((await call("/api/auth/register", { method: "POST", body: { name: "Duplicate", email: "jafeer@example.com", password } })).status, 409);
   const concurrent = await Promise.all([1, 2].map(() => call("/api/auth/register", { method: "POST", body: { name: "Other Writer", email: "other@example.com", password } })));
   assert.deepEqual(concurrent.map(result => result.status).sort(), [201, 409]);
@@ -93,32 +92,79 @@ test("blog creation requires valid JWT and validates fields without trusting the
   assert.equal(created.status, 201);
   assert.equal(created.body.message, "Blog created successfully");
   assert.equal(created.body.blog.author, "Jafeer Abdullah");
+  assert.equal(fixture.tables.blogs[0].image, blogInput.imageUrl);
+  assert.equal(fixture.tables.blogs[0].author_id, created.body.blog.authorId);
+  assert.equal(fixture.tables.blogs[0].author_name, "Jafeer Abdullah");
   blogId = created.body.blog.id;
   assert.equal((await call("/api/blogs")).body.blogs.length, 1);
   assert.equal((await call("/api/blogs/mine", { bearer: otherToken })).body.blogs.length, 0);
 });
 
 test("edit/delete enforce ownership; drafts are private; missing posts return JSON errors", async () => {
-  assert.equal((await call(`/api/blogs/${blogId}`, { bearer: otherToken })).status, 403);
+  assert.equal((await call(`/api/blogs/${blogId}`)).status, 200);
+  assert.equal((await call(`/api/blogs/${blogId}`, { bearer: otherToken })).status, 200);
   assert.equal((await call(`/api/blogs/${blogId}`, { method: "PUT", body: blogInput, bearer: otherToken })).status, 403);
   assert.equal((await call(`/api/blogs/${blogId}`, { method: "DELETE", bearer: otherToken })).status, 403);
   const edited = await call(`/api/blogs/${blogId}`, { method: "PUT", body: { ...blogInput, title: "Edited story", status: "draft" }, bearer: token });
   assert.equal(edited.body.blog.title, "Edited story");
   assert.equal((await call("/api/blogs")).body.blogs.length, 0);
   assert.equal((await call("/api/blogs/mine", { bearer: token })).body.blogs.length, 1);
+  assert.equal((await call(`/api/blogs/${blogId}`)).status, 404);
+  assert.equal((await call(`/api/blogs/${blogId}`, { bearer: otherToken })).status, 404);
+  assert.equal((await call(`/api/blogs/${blogId}`, { bearer: token })).status, 200);
   assert.equal((await call("/api/blogs/missing", { bearer: token })).status, 404);
 });
 
 test("concurrent blog writes keep every record and persist across a server restart", async () => {
   const created = await Promise.all(Array.from({ length: 5 }, (_, index) => call("/api/blogs", { method: "POST", body: { ...blogInput, title: `Concurrent story ${index}` }, bearer: token })));
   assert.ok(created.every(result => result.status === 201));
-  const stored = JSON.parse(await fs.readFile(path.join(dataDirectory, "blogs.json"), "utf8"));
+  const stored = fixture.tables.blogs;
   assert.equal(stored.length, 6);
   await new Promise(resolve => server.close(resolve));
   await start();
   assert.equal((await call("/api/blogs/mine", { bearer: token })).body.blogs.length, 6);
   assert.equal((await call(`/api/blogs/${blogId}`, { method: "DELETE", bearer: token })).status, 200);
   assert.equal((await call(`/api/blogs/${blogId}`, { bearer: token })).status, 404);
+});
+
+test("public blog details, newest-first feed, missing UUIDs and safe frontend serving", async () => {
+  const feed = await call("/api/blogs");
+  assert.equal(feed.status, 200);
+  const dates = feed.body.blogs.map(blog => blog.createdAt);
+  assert.deepEqual(dates, [...dates].sort().reverse());
+  const id = feed.body.blogs[0].id;
+  assert.equal((await call(`/api/blogs/${id}`)).body.blog.content, blogInput.content);
+  assert.equal((await call("/api/blogs/00000000-0000-0000-0000-000000000000")).status, 404);
+  assert.equal((await call("/api/blogs/not-a-uuid")).status, 404);
+  assert.equal((await call(`/api/blogs/${id}`, { bearer: "invalid-token" })).status, 401);
+  const html = await (await fetch(`${base}/frontend/blog-details.html`)).text();
+  assert.ok(html.includes('id="blog-details-content"'));
+  assert.ok(!html.includes(fixture.key));
+  assert.equal((await fetch(`${base}/frontend/.env`)).status, 404);
+  assert.equal((await fetch(`${base}/backend/.env`)).status, 404);
+});
+
+test("database failures use a safe JSON response without leaking upstream credentials", async () => {
+  fixture.failNext({ code: "XX000", message: `Private database error ${fixture.key}` });
+  const originalError = console.error;
+  const logged = [];
+  console.error = (...args) => logged.push(args.join(" "));
+  try {
+    const result = await call("/api/blogs");
+    assert.equal(result.status, 500);
+    assert.equal(result.body.message, "The server could not complete the request. Please try again.");
+    assert.ok(!JSON.stringify(result.body).includes(fixture.key));
+    assert.ok(logged.length > 0 && !logged.join(" ").includes(fixture.key));
+  } finally { console.error = originalError; }
+});
+
+test("feeds include rows beyond the Supabase response limit", async () => {
+  const originalCount = fixture.tables.blogs.length;
+  const template = fixture.tables.blogs[0];
+  const { randomUUID } = require("node:crypto");
+  fixture.tables.blogs.push(...Array.from({ length: 1002 }, (_, index) => ({ ...template, id: randomUUID(), title: `Paged story ${index}` })));
+  try { assert.equal((await call("/api/blogs")).body.blogs.length, originalCount + 1002); }
+  finally { fixture.tables.blogs.splice(originalCount); }
 });
 
 test("CORS permits configured frontend origins and does not grant access to other origins", async () => {

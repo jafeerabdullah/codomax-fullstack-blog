@@ -67,6 +67,7 @@
     currentUser: () => request("/auth/me", { authenticated: true }),
     published: async () => (await request("/blogs")).blogs,
     mine: async () => (await request("/blogs/mine", { authenticated: true })).blogs,
+    details: async id => (await request(`/blogs/${encodeURIComponent(id)}`)).blog,
     find: async id => (await request(`/blogs/${encodeURIComponent(id)}`, { authenticated: true })).blog,
     create: input => request("/blogs", { method: "POST", body: input, authenticated: true }),
     update: (id, input) => request(`/blogs/${encodeURIComponent(id)}`, { method: "PUT", body: input, authenticated: true }),

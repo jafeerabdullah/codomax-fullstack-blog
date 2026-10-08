@@ -6,6 +6,11 @@ const path = require("node:path");
 const target = path.join(__dirname, "..", ".env");
 
 if (existsSync(target)) {
+  let existing = readFileSync(target, "utf8");
+  for (const setting of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) {
+    if (!new RegExp(`^\\s*${setting}\\s*=`, "m").test(existing)) existing += `\n${setting}=\n`;
+  }
+  writeFileSync(target, existing);
   console.log(".env already exists; existing settings were preserved.");
 } else {
   const template = readFileSync(path.join(__dirname, "..", ".env.example"), "utf8");
