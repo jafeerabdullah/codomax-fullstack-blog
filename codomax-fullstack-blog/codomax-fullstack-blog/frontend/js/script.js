@@ -1,7 +1,7 @@
-/* Codomax Journal — Module 1 frontend only.
- * No requests, authentication, database, or credential storage.
- * The DemoPosts adapter keeps sample posts in sessionStorage (this tab).
- * Replace that adapter with API calls when the backend module is introduced.
+/* Codomax Journal — Module 2 frontend integration.
+ * Real accounts and blog operations use BlogAPI (api.js).
+ * The original Module 1 sample workspace remains available as ?demo=1.
+ * Passwords are never stored by the frontend.
  */
 "use strict";
 
@@ -9,6 +9,9 @@
   const STORAGE_KEY = "codomax.module1.posts.v1";
   const DEMO_WRITER = "Jafeer Abdullah";
   const DEMO_INITIALS = "JA";
+  const API = window.BlogAPI;
+  const params = new URLSearchParams(window.location.search);
+  const DEMO_MODE = params.get("demo") === "1" || (document.body.dataset.page === "dashboard" && !API.session());
   const CATEGORIES = ["Web Development", "Design", "Productivity", "Technology", "Personal Growth"];
   const FALLBACK_IMAGE = "images/cover-fallback.svg";
   const LOCAL_IMAGES = ["images/code-workspace.jpg", "images/design-perspective.jpg", "images/writing-routine.jpg", FALLBACK_IMAGE];
@@ -169,6 +172,39 @@
     target.classList.toggle("is-error", isError);
     target.hidden = false;
   }
+  function initials(name) { return name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase(); }
+  function loginLink(message) {
+    const link = element("a", "text-button", "Login");
+    link.href = "login.html";
+    message.append(document.createTextNode(" "), link);
+  }
+  function applyApiErrors(form, error) {
+    const names = { name: "full-name", email: "email", password: "password", title: "blog-title", category: "category", imageUrl: "image-url", content: "blog-content" };
+    for (const [name, text] of Object.entries(error.fields || {})) {
+      const field = document.getElementById(names[name]);
+      if (field && form.contains(field)) fieldError(field, text);
+    }
+  }
+  function initIdentity() {
+    const current = API.session();
+    const name = DEMO_MODE ? DEMO_WRITER : (current?.user.name || DEMO_WRITER);
+    $$("[data-writer-name]").forEach(node => { node.textContent = name; });
+    $$("[data-writer-initials]").forEach(node => { node.textContent = initials(name); });
+    $$("[data-writer-role]").forEach(node => { node.textContent = DEMO_MODE ? "Demo writer" : "Writer"; });
+    const heading = $("#dashboard-heading");
+    if (heading) heading.textContent = `Welcome back, ${name}.`;
+    if (DEMO_MODE) {
+      $$("a[href='create-blog.html'], a[href='dashboard.html']").forEach(link => { link.href += "?demo=1"; });
+      const note = $(".editor-aside .demo-note p");
+      if (note) note.textContent = "Demo workspace: your changes stay in this browser tab. Login and open the regular editor to publish a saved blog.";
+    }
+    if (current) {
+      const logout = element("button", "text-button", "Logout");
+      logout.type = "button";
+      logout.addEventListener("click", () => { API.logout(); window.location.assign("index.html"); });
+      $("#primary-nav").append(logout);
+    }
+  }
   function openDialog(dialog) { dialog.showModal(); document.body.classList.add("dialog-open"); }
 
   function initNavigation() {
@@ -216,7 +252,7 @@
     dot.setAttribute("aria-hidden", "true");
     meta.append(time, dot, element("span", "", `${post.readMinutes} min read`));
     const author = element("span", "author");
-    author.append(element("span", "avatar avatar-small", DEMO_INITIALS), document.createTextNode(post.author));
+    author.append(element("span", "avatar avatar-small", initials(post.author)), document.createTextNode(post.author));
     const read = element("button", "read-more", "Read more ");
     read.type = "button";
     read.dataset.readPost = post.id;
@@ -229,25 +265,28 @@
     return article;
   }
 
-  function initHome() {
+  async function initHome() {
     const grid = $("#blog-grid");
     if (!grid) return;
-    const published = DemoPosts.all().filter(post => post.status === "published").sort((a, b) => b.date.localeCompare(a.date));
-    grid.replaceChildren(...published.map(makeBlogCard));
-    if (!published.length) {
+    const samples = DemoPosts.all().filter(post => post.status === "published");
+    let published = samples;
+    function render() {
+      grid.replaceChildren(...published.map(makeBlogCard));
+      if (published.length) return;
       const empty = element("div", "empty-state");
-      empty.append(element("h3", "", "The next story could be yours."), element("p", "", "There are no published posts in this demo. Create a blog or reset the demo posts in your dashboard."));
+      empty.append(element("h3", "", "The next story could be yours."), element("p", "", "Create a blog to share your next idea."));
       const link = element("a", "button button-primary", "Open dashboard");
       link.href = "dashboard.html";
       empty.append(link);
       grid.append(empty);
     }
+    render();
     const dialog = $("#reader-dialog");
     document.addEventListener("click", event => {
       const read = event.target.closest("[data-read-post]");
       if (!read) return;
       // The editor's pick remains readable even if a sample is deleted from the demo.
-      const post = DemoPosts.find(read.dataset.readPost) || SAMPLE_POSTS.find(post => post.id === read.dataset.readPost);
+      const post = published.find(post => post.id === read.dataset.readPost) || SAMPLE_POSTS.find(post => post.id === read.dataset.readPost);
       if (!post) return;
       $("#reader-title").textContent = post.title;
       $("#reader-meta").textContent = `${post.category} · ${formatDate(post.date)} · ${post.readMinutes} min read · ${post.author}`;
@@ -258,6 +297,14 @@
       $("#reader-content").replaceChildren(...post.content.split(/\n\s*\n/).filter(Boolean).map(paragraph => element("p", "", paragraph)));
       openDialog(dialog);
     });
+    try {
+      published = [...await API.published(), ...samples];
+      render();
+    } catch (error) {
+      const message = element("div", "form-message is-error", `${error.message} The original sample stories are still available.`);
+      message.setAttribute("role", "status");
+      grid.before(message);
+    }
   }
 
   function fieldError(field, message) {
@@ -307,6 +354,7 @@
         case "password":
           if (!field.value.trim()) return "Enter your password.";
           if (kind === "register" && field.value.length < 8) return "Use a password with at least 8 characters.";
+          if (new TextEncoder().encode(field.value).length > 72) return "Password is too long. Use a shorter password.";
           return "";
         case "confirm-password":
           if (!field.value) return "Confirm your password.";
@@ -318,28 +366,42 @@
     if (confirm) password.addEventListener("input", () => {
       if (confirm.value) fieldError(confirm, validate(confirm));
     });
-    form.addEventListener("submit", event => {
+    const submit = $("[type='submit']", form);
+    let busy = false;
+    form.addEventListener("submit", async event => {
       event.preventDefault();
+      if (busy) return;
       if (!validateForm(fields, validate)) {
         showMessage(message, "Please check the highlighted fields and try again.", true);
         if (kind === "login") $("#login-dashboard-link").hidden = true;
         return;
       }
-      if (kind === "login") {
-        showMessage(message, "Your details passed validation. No sign-in was performed. You can explore the demo dashboard below.");
-        $("#login-dashboard-link").hidden = false;
-      } else {
-        showMessage(message, "Registration form validated successfully! No account was created. You can try the Login form using the link below.");
+      busy = true;
+      submit.disabled = true;
+      const label = submit.textContent;
+      submit.textContent = kind === "login" ? "Logging in…" : "Creating account…";
+      try {
+        const input = { email: $("#email", form).value.trim(), password: password.value };
+        const result = kind === "login" ? await API.login(input) : await API.register({ ...input, name: $("#full-name", form).value.trim() });
+        showMessage(message, kind === "login" ? `${result.message}. Open your dashboard below.` : `${result.message}. You can now login using the link below.`);
+        if (kind === "login") $("#login-dashboard-link").hidden = false;
+        password.value = "";
+        password.type = "password";
+        if (confirm) { confirm.value = ""; confirm.type = "password"; }
+        $$(".password-toggle", form).forEach(toggle => {
+          toggle.setAttribute("aria-pressed", "false");
+          toggle.setAttribute("aria-label", "Show password");
+        });
+      } catch (error) {
+        showMessage(message, error.message, true);
+        applyApiErrors(form, error);
+        if (kind === "login") $("#login-dashboard-link").hidden = true;
+      } finally {
+        busy = false;
+        submit.disabled = false;
+        submit.textContent = label;
+        message.focus();
       }
-      // Clear sensitive fields immediately; no credential data is retained.
-      password.value = "";
-      password.type = "password";
-      if (confirm) { confirm.value = ""; confirm.type = "password"; }
-      $$(".password-toggle", form).forEach(toggle => {
-        toggle.setAttribute("aria-pressed", "false");
-        toggle.setAttribute("aria-label", "Show password");
-      });
-      message.focus();
     });
     form.querySelector("[type='submit']").disabled = false;
   }
@@ -354,14 +416,21 @@
     }));
   }
 
-  function initDashboard() {
+  async function initDashboard() {
     const list = $("#dashboard-posts");
     if (!list) return;
     const message = $("#dashboard-message");
     const dialog = $("#confirm-dialog");
     let pendingAction = null;
+    let posts = DEMO_MODE ? DemoPosts.all() : [];
+    $("#reset-demo").hidden = !DEMO_MODE;
+    if (!DEMO_MODE) $(".workspace-notice p").textContent = "Your writing workspace. Published posts appear in the journal. Drafts stay in your dashboard.";
+    async function refresh() {
+      posts = DEMO_MODE ? DemoPosts.all() : await API.mine();
+      render();
+    }
     function render() {
-      const posts = DemoPosts.all().sort((a, b) => b.date.localeCompare(a.date));
+      posts.sort((a, b) => b.date.localeCompare(a.date));
       $("#stat-total").textContent = posts.length;
       $("#stat-published").textContent = posts.filter(post => post.status === "published").length;
       $("#stat-drafts").textContent = posts.filter(post => post.status === "draft").length;
@@ -377,7 +446,7 @@
         status.append(element("span", `status-badge${post.status === "draft" ? " status-draft" : ""}`, post.status === "draft" ? "Draft" : "Published"));
         const actions = element("div", "row-actions");
         const edit = element("a", "row-action");
-        edit.href = `create-blog.html?edit=${encodeURIComponent(post.id)}`;
+        edit.href = `create-blog.html?edit=${encodeURIComponent(post.id)}${DEMO_MODE ? "&demo=1" : ""}`;
         edit.setAttribute("aria-label", `Edit ${post.title}`);
         edit.append(icon("edit"), document.createTextNode("Edit"));
         const remove = element("button", "row-action row-action-delete");
@@ -401,33 +470,44 @@
     list.addEventListener("click", event => {
       const button = event.target.closest("[data-delete-post]");
       if (!button) return;
-      const post = DemoPosts.find(button.dataset.deletePost);
+      const post = posts.find(post => post.id === button.dataset.deletePost);
       if (!post) return;
-      askConfirmation("Delete this story?", `“${post.title}” will be removed from this tab's demo posts. You can restore the original samples with Reset demo posts.`, "Delete story", () => {
-        DemoPosts.remove(post.id);
-        render();
-        showMessage(message, `“${post.title}” was deleted from the demo.`);
+      askConfirmation("Delete this story?", DEMO_MODE ? `“${post.title}” will be removed from this tab's demo posts. Reset demo posts restores the original samples.` : `“${post.title}” will be permanently removed from your saved posts.`, "Delete story", async () => {
+        if (DEMO_MODE) DemoPosts.remove(post.id);
+        else await API.remove(post.id);
+        await refresh();
+        showMessage(message, `“${post.title}” was deleted${DEMO_MODE ? " from the demo" : ""}.`);
         message.focus();
       });
     });
-    $("#reset-demo").addEventListener("click", () => askConfirmation("Start fresh?", "Your demo changes will be replaced by the four original sample posts in this browser tab.", "Reset posts", () => {
+    $("#reset-demo").addEventListener("click", () => askConfirmation("Start fresh?", "Your demo changes will be replaced by the four original sample posts in this browser tab.", "Reset posts", async () => {
       DemoPosts.reset();
-      render();
+      await refresh();
       showMessage(message, "The original demo posts have been restored.");
       message.focus();
     }));
-    $("#confirm-action").addEventListener("click", () => {
+    $("#confirm-action").addEventListener("click", async () => {
       const action = pendingAction;
       pendingAction = null;
       dialog.close();
-      if (action) action();
+      if (!action) return;
+      list.inert = true;
+      try { await action(); }
+      catch (error) { showMessage(message, error.message, true); message.focus(); }
+      finally { list.inert = false; }
     });
     dialog.addEventListener("close", () => { pendingAction = null; });
     render();
-    if (!DemoPosts.available()) showMessage(message, "Browser storage is unavailable. You can try edits on this page, but changes may not carry between pages.", true);
+    try {
+      await refresh();
+      if (DEMO_MODE && !DemoPosts.available()) showMessage(message, "Browser storage is unavailable. Demo changes may not carry between pages.", true);
+    } catch (error) {
+      showMessage(message, error.message, true);
+      loginLink(message);
+    }
   }
 
-  function initEditor() {
+  async function initEditor() {
     const form = $("#blog-form");
     if (!form) return;
     const message = $("#blog-message");
@@ -440,6 +520,7 @@
     const submitLabel = $("span", submit);
     let editingId = new URLSearchParams(window.location.search).get("edit");
     let submitted = false;
+    let busy = false;
     const updateWords = () => {
       const count = wordCount(content.value);
       $("#word-count").textContent = `${count} ${count === 1 ? "word" : "words"}`;
@@ -454,7 +535,13 @@
       return "";
     }
     if (editingId) {
-      const post = DemoPosts.find(editingId);
+      let post;
+      try { post = DEMO_MODE ? DemoPosts.find(editingId) : await API.find(editingId); }
+      catch (error) {
+        showMessage(message, error.message, true);
+        if (!API.session()) loginLink(message);
+        return;
+      }
       if (post) {
         document.title = "Edit Blog — Codomax Journal";
         $("#editor-heading").textContent = "Make your story even better.";
@@ -465,7 +552,7 @@
         content.value = post.content;
         submitLabel.textContent = post.status === "draft" ? "Publish blog" : "Save changes";
       } else {
-        showMessage(message, "That demo post could not be found. You can create a new blog instead.", true);
+        showMessage(message, "That post could not be found. You can create a new blog instead.", true);
         editingId = null;
       }
     }
@@ -479,9 +566,13 @@
         submitted = false;
       }
     }));
-    form.addEventListener("submit", event => {
+    if (!DEMO_MODE && !API.session()) {
+      showMessage(message, "Please login before publishing a saved blog.");
+      loginLink(message);
+    }
+    form.addEventListener("submit", async event => {
       event.preventDefault();
-      if (submitted) return;
+      if (submitted || busy) return;
       if (!validateForm(fields, validate)) {
         showMessage(message, "Please complete the highlighted fields before publishing.", true);
         return;
@@ -493,23 +584,40 @@
         description: body.replace(/\s+/g, " ").slice(0, 145) + (body.replace(/\s+/g, " ").length > 145 ? "…" : ""),
         status: "published", readMinutes: readMinutes(body)
       };
-      let saved;
       const wasEditing = Boolean(editingId);
-      if (editingId) saved = DemoPosts.update(editingId, changes);
-      else {
-        editingId = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        saved = DemoPosts.create({ ...changes, id: editingId, date: today(), author: DEMO_WRITER });
-        // Refreshing this editor opens the saved demo instead of creating a duplicate.
-        try { history.replaceState(null, "", `create-blog.html?edit=${encodeURIComponent(editingId)}`); } catch { /* file:// may limit history updates */ }
-      }
-      showMessage(message, saved
-        ? (wasEditing ? "Your changes were saved to the demo!" : "Blog published successfully in the demo!") + " This preview is stored in this browser tab only; nothing was sent to a server."
-        : "Your form passed validation. Browser storage is unavailable, so this preview won't carry over to the dashboard.", !saved);
-      $("#blog-dashboard-link").hidden = !saved;
+      busy = true;
       submit.disabled = true;
-      submitLabel.textContent = "Saved to demo";
-      submitted = true;
-      message.focus();
+      submitLabel.textContent = "Saving…";
+      try {
+        if (DEMO_MODE) {
+          let saved;
+          if (editingId) saved = DemoPosts.update(editingId, changes);
+          else {
+            editingId = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            saved = DemoPosts.create({ ...changes, id: editingId, date: today(), author: DEMO_WRITER });
+          }
+          if (!saved) throw new Error("Browser storage is unavailable, so this demo won't carry over to the dashboard.");
+          showMessage(message, wasEditing ? "Your changes were saved to the demo!" : "Blog published successfully in the demo! Changes stay in this browser tab only.");
+        } else {
+          const input = { ...changes, author: API.session()?.user.name };
+          const result = editingId ? await API.update(editingId, input) : await API.create(input);
+          editingId = result.blog.id;
+          showMessage(message, result.message);
+        }
+        try { history.replaceState(null, "", `create-blog.html?edit=${encodeURIComponent(editingId)}${DEMO_MODE ? "&demo=1" : ""}`); } catch { /* Local files may restrict history updates. */ }
+        $("#blog-dashboard-link").hidden = false;
+        submitted = true;
+        submitLabel.textContent = "Saved";
+      } catch (error) {
+        showMessage(message, error.message, true);
+        applyApiErrors(form, error);
+        if (!DEMO_MODE && !API.session()) loginLink(message);
+        submitLabel.textContent = wasEditing ? "Save changes" : "Publish blog";
+      } finally {
+        busy = false;
+        submit.disabled = submitted;
+        message.focus();
+      }
     });
     submit.disabled = false;
   }
@@ -517,6 +625,7 @@
   // defer ensures the HTML is ready before any initializer runs.
   initNavigation();
   initDialogs();
+  initIdentity();
   initPasswordToggles();
   $$("img").forEach(watchImage);
   $$("[data-year]").forEach(node => { node.textContent = new Date().getFullYear(); });

@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Your Codomax Journal demo workspace. Explore your posts, edit a story, or write something new.">
+    <meta name="description" content="Your Codomax Journal writing workspace. Explore your posts, edit a story, or write something new.">
     <meta name="theme-color" content="#132d46">
     <title>Dashboard — Codomax Journal</title>
     <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
     <script src="js/script.js" defer></script>
   </head>
   <body data-page="dashboard" class="workspace-page">
@@ -16,19 +17,19 @@
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Codomax Journal home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span></a><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
         <nav class="primary-nav" id="primary-nav" aria-label="Dashboard navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html" aria-current="page">Dashboard</a><a href="create-blog.html">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip"><span class="avatar">JA</span><span>Jafeer Abdullah<small>Demo writer</small></span></span>
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html" aria-current="page">Dashboard</a><a href="create-blog.html">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip"><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Jafeer Abdullah</span><small data-writer-role>Demo writer</small></span></span>
         </nav>
       </div>
     </header>
     <main class="container workspace-main" id="main-content">
       <div class="workspace-heading">
         <div>
-          <span class="eyebrow">YOUR CREATIVE CORNER</span><h1>Welcome back, Jafeer Abdullah<span class="accent-text">.</span></h1><p>A fresh page. A new possibility. What will you share today?</p>
+          <span class="eyebrow">YOUR CREATIVE CORNER</span><h1 id="dashboard-heading">Welcome back, Jafeer Abdullah<span class="accent-text">.</span></h1><p>A fresh page. A new possibility. What will you share today?</p>
         </div>
         <a class="button button-primary" href="create-blog.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Create new blog</a>
       </div>
       <div class="workspace-notice">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Demo workspace.</strong> Posts are sample data. Your changes stay in this browser tab; no account or server is connected.</p>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Demo workspace.</strong> Explore the original sample posts here, or login to manage your saved stories.</p>
       </div>
       <section class="stats-grid" aria-label="Blog statistics">
         <article class="stat-card">

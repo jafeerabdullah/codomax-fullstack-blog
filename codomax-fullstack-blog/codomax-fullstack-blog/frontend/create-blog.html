@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Give your next idea a home. Write and preview a blog in the Codomax Journal demo editor.">
+    <meta name="description" content="Give your next idea a home. Write and preview a blog in the Codomax Journal blog editor.">
     <meta name="theme-color" content="#132d46">
     <title>Create Blog — Codomax Journal</title>
     <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
     <script src="js/script.js" defer></script>
   </head>
   <body data-page="create-blog" class="workspace-page">
@@ -16,7 +17,7 @@
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Codomax Journal home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span></a><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
         <nav class="primary-nav" id="primary-nav" aria-label="Dashboard navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="create-blog.html" aria-current="page">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip"><span class="avatar">JA</span><span>Jafeer Abdullah<small>Demo writer</small></span></span>
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="create-blog.html" aria-current="page">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip"><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Jafeer Abdullah</span><small data-writer-role>Demo writer</small></span></span>
         </nav>
       </div>
     </header>
@@ -51,7 +52,7 @@
             <div class="editor-actions">
               <a class="button button-secondary" href="dashboard.html">Cancel</a><button class="button button-primary" id="publish-button" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 16-8-6 16-3-7-7-1ZM11 13l9-9"/></svg><span>Publish blog</span></button>
             </div>
-            <a class="success-dashboard-link" id="blog-dashboard-link" href="dashboard.html" hidden>View your stories in the demo dashboard</a>
+            <a class="success-dashboard-link" id="blog-dashboard-link" href="dashboard.html" hidden>View your stories in the dashboard</a>
           </form>
         </section>
         <aside class="editor-aside">
@@ -79,7 +80,7 @@
             </ol>
           </section>
           <div class="demo-note">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>A safe place to try things.</strong>Publishing updates the demo in this browser tab only. Nothing is sent to a server.</p>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>A safe place to try things.</strong>Login to publish your story under your own name. Your posts are saved by the backend.</p>
           </div>
         </aside>
       </div>
@@ -96,7 +97,7 @@
       </div>
     </footer>
     <noscript>
-      <p class="noscript-note">Enable JavaScript to validate and publish a demo blog.</p>
+      <p class="noscript-note">Enable JavaScript to validate and publish a blog.</p>
     </noscript>
   </body>
 </html>

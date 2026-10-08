@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Welcome back to the Codomax Journal. Try the Module 1 frontend login form.">
+    <meta name="description" content="Welcome back to the Codomax Journal. Login to your writing workspace.">
     <meta name="theme-color" content="#132d46">
     <title>Login — Codomax Journal</title>
     <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
     <script src="js/script.js" defer></script>
   </head>
   <body data-page="login">
@@ -41,18 +42,18 @@
           <div class="field">
             <label for="password">Password</label>
             <div class="password-input">
-              <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" maxlength="128" required aria-describedby="password-error"><button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" maxlength="72" required aria-describedby="password-error"><button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
             <span class="field-error" id="password-error"></span>
           </div>
           <div class="form-message" id="login-message" role="status" aria-live="polite" tabindex="-1" hidden>
           </div>
           <button class="button button-primary button-full" type="submit" disabled>Login</button>
-          <a class="button button-secondary button-full" id="login-dashboard-link" href="dashboard.html" hidden>Open demo dashboard</a>
+          <a class="button button-secondary button-full" id="login-dashboard-link" href="dashboard.html" hidden>Open dashboard</a>
         </form>
         <p class="auth-switch">New around here? <a href="register.html">Create an account</a></p>
         <div class="demo-note">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Frontend preview</strong>This form validates your details only. No sign-in happens and your credentials are never saved or sent.</p>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Your writing starts here.</strong>Login to publish and manage your stories. Your password is verified securely by the server.</p>
         </div>
       </section>
     </main>
@@ -68,7 +69,7 @@
       </div>
     </footer>
     <noscript>
-      <p class="noscript-note">Enable JavaScript to validate this demo form.</p>
+      <p class="noscript-note">Enable JavaScript to login.</p>
     </noscript>
   </body>
 </html>
