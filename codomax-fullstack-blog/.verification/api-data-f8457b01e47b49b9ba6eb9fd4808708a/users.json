@@ -1,0 +1,16 @@
+[
+  {
+    "id": "e6cebc1c-95e3-447c-9905-88f85459f0c2",
+    "name": "Jafeer Abdullah",
+    "email": "browser-fc8f04c0b5@example.com",
+    "password": "$2b$12$9BmCKDhQPXCDbGHuC19m7.V4w2qeIAbkxrbAqN5ULDBt2BYEm1qj2",
+    "createdAt": "2026-10-08T07:34:29.791Z"
+  },
+  {
+    "id": "234cafa3-6176-4639-a748-843f9351b4b4",
+    "name": "Jafeer Abdullah",
+    "email": "postman-7e0d2fdfe5@example.com",
+    "password": "$2b$12$uQiF7gJnBLmwkYYjJF2SjOoWsZZfr7MxatNSZv.Wah8kuiLR5i3VG",
+    "createdAt": "2026-10-08T07:34:49.978Z"
+  }
+]

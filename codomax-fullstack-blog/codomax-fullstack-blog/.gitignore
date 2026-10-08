@@ -1,6 +1,0 @@
-backend/node_modules/
-backend/.env
-backend/data/*.tmp
-backend/coverage/
-*.log
-.DS_Store
