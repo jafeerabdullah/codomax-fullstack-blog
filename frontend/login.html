@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Welcome back to the Codomax Journal. Login to your writing workspace.">
+    <meta name="theme-color" content="#132d46">
+    <title>Login — Codomax Journal</title>
+    <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
+    <script src="js/script.js" defer></script>
+  </head>
+  <body data-page="login">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html" aria-label="Codomax Journal home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span></a><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><span class="nav-divider" aria-hidden="true"></span><a href="login.html" aria-current="page">Login</a><a class="button button-primary button-small" href="register.html">Register</a>
+        </nav>
+      </div>
+    </header>
+    <main class="auth-main container" id="main-content">
+      <section class="auth-story" aria-label="Welcome to the community">
+        <div class="auth-story-top">
+          <span class="eyebrow">YOUR IDEAS BELONG HERE</span><span class="story-spark" aria-hidden="true">✦</span>
+        </div>
+        <div>
+          <h1>A good story<br>starts with <span>you.</span></h1><p>A little knowledge shared. A new perspective found. Welcome back to your corner of the internet.</p>
+        </div>
+        <div class="auth-story-bottom">
+          <span class="mini-brand">codomax.</span><span>Stay curious. Keep creating.</span>
+        </div>
+      </section>
+      <section class="auth-form-section" aria-labelledby="login-heading">
+        <span class="eyebrow">LET'S PICK UP WHERE YOU LEFT OFF</span><h2 id="login-heading">Welcome back.</h2><p class="form-intro">Enter your details to get started.</p>
+        <form id="login-form" class="form" novalidate>
+          <div class="field">
+            <label for="email">Email address</label><input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" maxlength="254" required aria-describedby="email-error"><span class="field-error" id="email-error"></span>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="password-input">
+              <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" maxlength="72" required aria-describedby="password-error"><button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            </div>
+            <span class="field-error" id="password-error"></span>
+          </div>
+          <div class="form-message" id="login-message" role="status" aria-live="polite" tabindex="-1" hidden>
+          </div>
+          <button class="button button-primary button-full" type="submit" disabled>Login</button>
+          <a class="button button-secondary button-full" id="login-dashboard-link" href="dashboard.html" hidden>Open dashboard</a>
+        </form>
+        <p class="auth-switch">New around here? <a href="register.html">Create an account</a></p>
+        <div class="demo-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Your writing starts here.</strong>Login to publish and manage your stories. Your password is verified securely by the server.</p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-main">
+        <a class="brand footer-brand" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span></span></a><p>A home for ideas worth sharing.</p>
+        <nav aria-label="Footer navigation">
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="register.html">Register</a>
+        </nav>
+      </div>
+      <div class="container footer-bottom">
+        <span>© <span data-year>2026</span> Codomax Journal. All rights reserved.</span><span>Made with curiosity & a little code.</span>
+      </div>
+    </footer>
+    <noscript>
+      <p class="noscript-note">Enable JavaScript to login.</p>
+    </noscript>
+  </body>
+</html>
