@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Share your perspective with the Codomax Journal. Try the Module 1 registration form.">
+    <meta name="description" content="Share your perspective with the Codomax Journal. Create your writer account.">
     <meta name="theme-color" content="#132d46">
     <title>Register — Codomax Journal</title>
     <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
     <script src="js/script.js" defer></script>
   </head>
   <body data-page="register">
@@ -44,14 +45,14 @@
           <div class="field">
             <label for="password">Password</label>
             <div class="password-input">
-              <input id="password" name="password" type="password" placeholder="Create a password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="password-help password-error"><button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <input id="password" name="password" type="password" placeholder="Create a password" autocomplete="new-password" minlength="8" maxlength="72" required aria-describedby="password-help password-error"><button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
             <span class="field-help" id="password-help">Use at least 8 characters.</span><span class="field-error" id="password-error"></span>
           </div>
           <div class="field">
             <label for="confirm-password">Confirm password</label>
             <div class="password-input">
-              <input id="confirm-password" name="confirmPassword" type="password" placeholder="Enter your password again" autocomplete="new-password" maxlength="128" required aria-describedby="confirm-password-error"><button class="password-toggle" type="button" aria-controls="confirm-password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <input id="confirm-password" name="confirmPassword" type="password" placeholder="Enter your password again" autocomplete="new-password" maxlength="72" required aria-describedby="confirm-password-error"><button class="password-toggle" type="button" aria-controls="confirm-password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
             <span class="field-error" id="confirm-password-error"></span>
           </div>
@@ -61,7 +62,7 @@
         </form>
         <p class="auth-switch">Already part of the journal? <a href="login.html">Login</a></p>
         <div class="demo-note">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Frontend preview</strong>No account is created in this module. Your details are validated here and are never saved or sent.</p>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>A home for your stories.</strong>Create an account to publish under your name and manage your posts.</p>
         </div>
       </section>
     </main>
@@ -77,7 +78,7 @@
       </div>
     </footer>
     <noscript>
-      <p class="noscript-note">Enable JavaScript to validate this demo form.</p>
+      <p class="noscript-note">Enable JavaScript to create an account.</p>
     </noscript>
   </body>
 </html>
