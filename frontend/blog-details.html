@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Read a story from the Codomax Journal.">
+    <meta name="theme-color" content="#132d46">
+    <title>Read a story — Codomax Journal</title>
+    <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
+    <script src="js/script.js" defer></script>
+  </head>
+  <body data-page="blog-details">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html" aria-label="Codomax Journal home">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span>
+          <span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span>
+        </a>
+        <button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a>
+          <span class="nav-divider" aria-hidden="true"></span>
+          <a href="login.html">Login</a><a class="button button-primary button-small" href="register.html">Register</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container blog-details-main" id="main-content">
+      <a class="text-button" href="index.html#blogs">← Back to the journal</a>
+      <div class="form-message" id="blog-details-message" role="status" aria-live="polite">Loading story…</div>
+      <article class="blog-details-article" id="blog-details" aria-labelledby="blog-details-title" hidden>
+        <img class="reader-image" id="blog-details-image" src="images/cover-fallback.svg" alt="" width="1200" height="800">
+        <div class="reader-body">
+          <span class="eyebrow" id="blog-details-category"></span>
+          <h1 id="blog-details-title"></h1>
+          <div class="post-meta blog-details-meta">
+            <span id="blog-details-author"></span><span aria-hidden="true">·</span><time id="blog-details-date"></time>
+          </div>
+          <div class="reader-content" id="blog-details-content"></div>
+        </div>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-main">
+        <a class="brand footer-brand" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span></span></a><p>A home for ideas worth sharing.</p>
+        <nav aria-label="Footer navigation"><a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="register.html">Register</a></nav>
+      </div>
+      <div class="container footer-bottom"><span>© <span data-year>2026</span> Codomax Journal. All rights reserved.</span><span>Made with curiosity &amp; a little code.</span></div>
+    </footer>
+    <noscript><p class="noscript-note">Enable JavaScript to load this blog. <a href="index.html#blogs">Return to the journal.</a></p></noscript>
+  </body>
+</html>

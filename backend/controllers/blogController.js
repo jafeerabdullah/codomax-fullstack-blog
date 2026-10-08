@@ -9,7 +9,7 @@ async function createBlog(req, res) {
 }
 async function listBlogs(req, res) { res.json({ blogs: await Blog.published() }); }
 async function listMyBlogs(req, res) { res.json({ blogs: await Blog.byAuthor(req.user.id) }); }
-async function getBlog(req, res) { res.json({ blog: await Blog.owned(req.params.id, req.user.id) }); }
+async function getBlog(req, res) { res.json({ blog: await Blog.readable(req.params.id, req.user?.id) }); }
 async function updateBlog(req, res) {
   const blog = await Blog.update(req.params.id, req.user.id, blogInput(req.body));
   res.json({ message: "Blog updated successfully", blog });
