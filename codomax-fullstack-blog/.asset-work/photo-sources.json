@@ -1,0 +1,47 @@
+{
+  "status": "download-blocked",
+  "assets": [
+    {
+      "filename": "laptop-code.jpg",
+      "subject": "Cool blue laptop/code workspace",
+      "photographer": "Alexander Nrjwolf",
+      "sourcePage": "https://unsplash.com/photos/a-laptop-computer-sitting-on-top-of-a-desk-ysZnFnexwRE",
+      "originalImageUrl": "https://images.unsplash.com/photo-1641736494173-e7d5775121b2?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialReuse": true,
+      "attributionRequired": false,
+      "downloaded": false,
+      "localPath": null,
+      "downloadFailure": "HTTP 403. FortiGuard Web Filter blocks image hosts on this connection."
+    },
+    {
+      "filename": "architecture.jpg",
+      "subject": "White geometric building against blue sky",
+      "photographer": "Alexander Tsang",
+      "sourcePage": "https://unsplash.com/photos/white-concrete-building-during-daytime-TIP-CrTGJNA",
+      "originalImageUrl": "https://images.unsplash.com/photo-1545984597-0e2b6842c62c?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialReuse": true,
+      "attributionRequired": false,
+      "downloaded": false,
+      "localPath": null,
+      "downloadFailure": "HTTP 403. FortiGuard Web Filter blocks image hosts on this connection."
+    },
+    {
+      "filename": "writing-desk.jpg",
+      "subject": "Coffee beside open notebook on a light desk",
+      "photographer": "Priscilla Du Preez",
+      "sourcePage": "https://unsplash.com/photos/a-cup-of-coffee-and-a-notebook-on-a-table-CeW--PHwpGc",
+      "originalImageUrl": "https://images.unsplash.com/photo-1643148636637-58b3eb95cdad?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialReuse": true,
+      "attributionRequired": false,
+      "downloaded": false,
+      "localPath": null,
+      "downloadFailure": "HTTP 403. FortiGuard Web Filter blocks image hosts on this connection."
+    }
+  ]
+}
