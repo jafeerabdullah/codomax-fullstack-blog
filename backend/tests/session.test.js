@@ -118,3 +118,19 @@ test("blocked browser storage does not report a usable login session", async () 
   assert.equal(app.api.session(), null);
   assert.equal(app.storage.size, 0);
 });
+
+test("frontend API uses same-origin relative requests on HTTPS production, previews and custom local ports", async () => {
+  for (const url of ["https://journal.example/dashboard.html", "https://preview.example/frontend/dashboard.html", "http://localhost:8123/dashboard.html"]) {
+    const requests = [];
+    const app = browser({ url, saved: JSON.stringify({ token: token(), user }), fetch: async (route, options) => {
+      requests.push({ route, options });
+      return route.startsWith("/api/blogs") ? Response.json({ blogs: [] }) : Response.json({ ...user, totalBlogs: 0 });
+    } });
+    await app.api.profile();
+    await app.api.published({ search: "a thought", category: "Design" });
+    assert.equal(requests[0].route, "/api/users/profile");
+    assert.ok(requests[0].options.headers.Authorization.startsWith("Bearer "));
+    assert.equal(requests[1].route, "/api/blogs?search=a+thought&category=Design");
+    assert.equal(requests[1].options.headers.Authorization, undefined);
+  }
+});

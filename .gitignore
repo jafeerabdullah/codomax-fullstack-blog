@@ -2,5 +2,8 @@ backend/node_modules/
 backend/.env
 backend/data/*.tmp
 backend/coverage/
+backend/public/
+.vercel/
+backend/.vercel/
 *.log
 .DS_Store

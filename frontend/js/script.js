@@ -170,7 +170,32 @@
   function showMessage(target, text, isError = false) {
     target.textContent = text;
     target.classList.toggle("is-error", isError);
+    target.setAttribute("role", isError ? "alert" : "status");
+    target.setAttribute("aria-live", isError ? "assertive" : "polite");
     target.hidden = false;
+  }
+  function notify(text) {
+    $("#notification")?.remove();
+    const toast = element("div", "toast");
+    toast.id = "notification";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    const close = element("button", "icon-button", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Dismiss notification");
+    close.addEventListener("click", () => toast.remove());
+    toast.append(element("span", "", text), close);
+    document.body.append(toast);
+    let timer = setTimeout(() => toast.remove(), 7000);
+    toast.addEventListener("pointerenter", () => clearTimeout(timer));
+    toast.addEventListener("focusin", () => clearTimeout(timer));
+    toast.addEventListener("pointerleave", () => { timer = setTimeout(() => toast.remove(), 7000); });
+  }
+  function addRetry(target) {
+    const retry = element("button", "text-button", "Try again");
+    retry.type = "button";
+    retry.addEventListener("click", () => window.location.reload());
+    target.append(document.createTextNode(" "), retry);
   }
   function initials(name) { return name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase(); }
   function loginLink(message) {
@@ -187,24 +212,47 @@
   }
   function initIdentity() {
     const current = API.session();
-    const name = DEMO_MODE ? DEMO_WRITER : (current?.user.name || DEMO_WRITER);
+    const name = DEMO_MODE ? DEMO_WRITER : (current?.user.name || "Writer");
     $$("[data-writer-name]").forEach(node => { node.textContent = name; });
     $$("[data-writer-initials]").forEach(node => { node.textContent = initials(name); });
     $$("[data-writer-role]").forEach(node => { node.textContent = DEMO_MODE ? "Demo writer" : "Writer"; });
     const heading = $("#dashboard-heading");
-    if (heading) heading.textContent = `Welcome, ${name}.`;
+    if (heading) heading.textContent = `Welcome back, ${name}.`;
     if (DEMO_MODE) {
       $$("a[href='create-blog.html'], a[href='dashboard.html']").forEach(link => { link.href += "?demo=1"; });
       const note = $(".editor-aside .demo-note p");
       if (note) note.textContent = "Demo workspace: your changes stay in this browser tab. Login and open the regular editor to publish a saved blog.";
     }
-    if (current) {
+    const nav = $("#primary-nav");
+    const page = document.body.dataset.page;
+    const link = (label, href, active = false, className = "") => {
+      const node = element("a", className, label);
+      node.href = href;
+      if (active) node.setAttribute("aria-current", "page");
+      return node;
+    };
+    nav.replaceChildren(link("Home", "index.html", page === "home"), link("Blogs", "blogs.html", ["blogs", "blog-details"].includes(page)));
+    if (current || DEMO_MODE) {
+      const suffix = DEMO_MODE ? "?demo=1" : "";
+      nav.append(link("Dashboard", `dashboard.html${suffix}`, ["dashboard", "edit-blog"].includes(page)), link("Create blog", `create-blog.html${suffix}`, page === "create-blog"));
+      const divider = element("span", "nav-divider");
+      divider.setAttribute("aria-hidden", "true");
+      const profile = link("", `dashboard.html${suffix}#user-profile`, false, "profile-chip");
+      profile.setAttribute("aria-label", `Profile: ${name}`);
+      const details = element("span");
+      const writer = element("span", "", name);
+      writer.dataset.writerName = "";
+      details.append(writer, element("small", "", DEMO_MODE ? "Demo writer" : "Your workspace"));
+      profile.append(element("span", "avatar", initials(name)), details);
+      nav.append(divider, profile);
+    } else nav.append(link("Login", "login.html", page === "login"), link("Register", "register.html", page === "register", "button button-primary button-small"));
+    if (current && !DEMO_MODE) {
       const logout = element("button", "text-button", "Logout");
       logout.id = "logout-button";
       logout.type = "button";
-      logout.addEventListener("click", () => { API.logout(); window.location.replace("login.html"); });
-      $("#primary-nav").append(logout);
-    }
+      logout.addEventListener("click", () => { API.logout(); window.location.replace("login.html?reason=logged-out"); });
+      nav.append(logout);
+    } else if (DEMO_MODE) nav.append(link("Exit demo", "index.html", false, "text-button"));
   }
   function openDialog(dialog) { dialog.showModal(); document.body.classList.add("dialog-open"); }
 
@@ -218,14 +266,14 @@
       nav.classList.toggle("is-open", open);
     };
     button.addEventListener("click", () => setOpen(button.getAttribute("aria-expanded") !== "true"));
-    $$("a", nav).forEach(link => link.addEventListener("click", () => setOpen(false)));
+    nav.addEventListener("click", event => { if (event.target.closest("a, button")) setOpen(false); });
     document.addEventListener("click", event => {
       if (!nav.contains(event.target) && !button.contains(event.target)) setOpen(false);
     });
     document.addEventListener("keydown", event => {
       if (event.key === "Escape" && nav.classList.contains("is-open")) { setOpen(false); button.focus(); }
     });
-    const desktop = window.matchMedia("(min-width: 701px)");
+    const desktop = window.matchMedia("(min-width: 1001px)");
     desktop.addEventListener("change", () => setOpen(false));
   }
 
@@ -233,6 +281,15 @@
     $$("dialog").forEach(dialog => {
       $$("[data-close-dialog], [data-cancel-confirm]", dialog).forEach(button => button.addEventListener("click", () => dialog.close()));
       dialog.addEventListener("close", () => document.body.classList.remove("dialog-open"));
+      dialog.addEventListener("keydown", event => {
+        if (event.key !== "Tab") return;
+        const controls = $$("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])", dialog).filter(node => node.getClientRects().length);
+        if (!controls.length) { event.preventDefault(); return; }
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+      });
       dialog.addEventListener("click", event => {
         if (event.target !== dialog) return;
         const bounds = dialog.getBoundingClientRect();
@@ -243,7 +300,9 @@
 
   function makeBlogCard(post) {
     const article = element("article", "blog-card");
-    const cover = element("div", "card-image");
+    const cover = element("a", "card-image");
+    cover.href = `blog-details.html?id=${encodeURIComponent(post.id)}${DEMO_MODE ? "&demo=1" : ""}`;
+    cover.setAttribute("aria-label", `Read ${post.title}`);
     cover.append(makeImage(post.imageUrl, post.imageAlt), element("span", "image-category", post.category));
     const content = element("div", "card-content");
     const meta = element("div", "post-meta");
@@ -261,7 +320,11 @@
     read.append(icon("chevron"));
     const bottom = element("div", "card-bottom");
     bottom.append(author, read);
-    content.append(meta, element("h3", "", post.title), element("p", "", post.description), bottom);
+    const title = element("h3");
+    const titleLink = element("a", "", post.title);
+    titleLink.href = cover.href;
+    title.append(titleLink);
+    content.append(meta, title, element("p", "", post.description), bottom);
     article.append(cover, content);
     return article;
   }
@@ -278,15 +341,38 @@
     category.value = CATEGORIES.includes(params.get("category")) ? params.get("category") : "";
     let published = [];
     let requestId = 0;
+    function feature(post) {
+      if (!$("#featured-story")) return;
+      $("#featured-title").textContent = post?.title || "Every great story starts with an idea.";
+      $("#featured-label").textContent = post ? "LATEST FROM THE JOURNAL" : "THE CODOMAX JOURNAL";
+      $("#featured-category").textContent = post?.category || "A SPACE TO CREATE";
+      $("#featured-meta").textContent = post ? `${formatDate(post.date)} · ${post.readMinutes} min read · ${post.author}` : "Make room for yours.";
+      const image = $("#featured-image");
+      delete image.dataset.fallbackApplied;
+      image.alt = post?.imageAlt || "A notebook and coffee, ready for a new story";
+      image.src = post?.imageUrl || LOCAL_IMAGES[2];
+      const read = $("#featured-read");
+      read.href = post ? `blog-details.html?id=${encodeURIComponent(post.id)}${DEMO_MODE ? "&demo=1" : ""}` : "register.html";
+      read.setAttribute("aria-label", post ? `Read ${post.title}` : "Start writing");
+      if (post && DEMO_MODE) read.dataset.readPost = post.id;
+      else delete read.dataset.readPost;
+    }
     function render() {
       grid.replaceChildren(...published.map(makeBlogCard));
       if (published.length) return;
       const empty = element("div", "empty-state");
       const filtered = search.value.trim() || category.value;
       empty.append(element("h3", "", filtered ? "No blogs match your search." : "The next story could be yours."), element("p", "", filtered ? "Try another search or clear the filters." : "Create a blog to share your next idea."));
-      const link = element("a", "button button-primary", "Open dashboard");
-      link.href = "dashboard.html";
-      empty.append(link);
+      if (filtered) {
+        const clear = element("button", "button button-secondary", "Clear filters");
+        clear.type = "button";
+        clear.addEventListener("click", () => { form.reset(); load(); });
+        empty.append(clear);
+      } else {
+        const link = element("a", "button button-primary", "Write the first story");
+        link.href = "create-blog.html";
+        empty.append(link);
+      }
       grid.append(empty);
     }
     async function load() {
@@ -299,7 +385,12 @@
       }
       try { history.replaceState(null, "", url); } catch { /* Local previews may restrict history updates. */ }
       grid.setAttribute("aria-busy", "true");
-      grid.replaceChildren();
+      grid.replaceChildren(...Array.from({ length: 3 }, () => {
+        const skeleton = element("div", "skeleton-card");
+        skeleton.setAttribute("aria-hidden", "true");
+        skeleton.append(element("div", "skeleton-cover"), element("div", "skeleton-line"), element("div", "skeleton-line"));
+        return skeleton;
+      }));
       submit.disabled = true;
       showMessage(message, "Loading blogs…");
       try {
@@ -308,10 +399,15 @@
           (!filters.search || `${post.title}\n${post.content}`.toLowerCase().includes(filters.search.toLowerCase()))) : await API.published(filters);
         if (currentRequest !== requestId) return;
         published = posts;
+        feature(posts[0]);
         render();
         showMessage(message, `${posts.length} ${posts.length === 1 ? "blog" : "blogs"}${DEMO_MODE ? " in the demo" : " found"}.`);
       } catch (error) {
-        if (currentRequest === requestId) showMessage(message, `${error.message} Select Search to try again.`, true);
+        if (currentRequest === requestId) {
+          grid.replaceChildren();
+          showMessage(message, error.message, true);
+          addRetry(message);
+        }
       } finally {
         if (currentRequest === requestId) { grid.setAttribute("aria-busy", "false"); submit.disabled = false; }
       }
@@ -322,7 +418,8 @@
     const dialog = $("#reader-dialog");
     document.addEventListener("click", event => {
       const read = event.target.closest("[data-read-post]");
-      if (!read) return;
+      if (!read || !DEMO_MODE || !dialog) return;
+      event.preventDefault();
       // The editor's pick remains readable even if a sample is deleted from the demo.
       const post = published.find(post => post.id === read.dataset.readPost) || SAMPLE_POSTS.find(post => post.id === read.dataset.readPost);
       if (!post) return;
@@ -342,15 +439,20 @@
     const article = $("#blog-details");
     if (!article) return;
     const message = $("#blog-details-message");
+    article.hidden = true;
+    $("#blog-details-content").replaceChildren();
+    showMessage(message, "Loading story…");
     const id = params.get("id");
     if (!id) { showMessage(message, "Choose a blog from the journal to read it.", true); return; }
     try {
       const post = DEMO_MODE ? DemoPosts.find(id) : await API.details(id);
       if (!post) throw Object.assign(new Error("Blog not found."), { status: 404 });
+      article.dataset.privateDraft = String(!DEMO_MODE && post.status === "draft");
       document.title = `${post.title} — Codomax Journal`;
       $("#blog-details-title").textContent = post.title;
       $("#blog-details-category").textContent = post.category;
       $("#blog-details-author").textContent = post.author;
+      $("#blog-details-read-time").textContent = `${post.readMinutes} min read`;
       const time = $("#blog-details-date");
       time.dateTime = post.createdAt || post.date;
       time.textContent = formatDate(post.date);
@@ -361,7 +463,10 @@
       $("#blog-details-content").replaceChildren(...post.content.split(/\n\s*\n/).filter(Boolean).map(paragraph => element("p", "", paragraph)));
       article.hidden = false;
       message.hidden = true;
-    } catch (error) { showMessage(message, error.status === 404 ? "Blog not found. It may have been removed or is not published." : error.message, true); }
+    } catch (error) {
+      showMessage(message, error.status === 404 ? "Blog not found. It may have been removed or is not published." : error.message, true);
+      if (error.status !== 404) addRetry(message);
+    }
   }
 
   function fieldError(field, message) {
@@ -429,6 +534,7 @@
     });
     const submit = $("[type='submit']", form);
     if (kind === "login" && params.get("reason") === "session-expired") showMessage(message, "Your session expired. Please login again.");
+    else if (kind === "login" && params.get("reason") === "logged-out") { showMessage(message, "You're logged out. See you next time."); notify("You have been logged out."); }
     else if (kind === "login" && params.has("next")) showMessage(message, "Please login to continue to your writing workspace.");
     let busy = false;
     form.addEventListener("submit", async event => {
@@ -448,7 +554,9 @@
         const input = { email: $("#email", form).value.trim(), password: password.value };
         const result = kind === "login" ? await API.login(input) : await API.register({ ...input, name: $("#full-name", form).value.trim() });
         showMessage(message, kind === "login" ? `${result.message}. Open your workspace below.` : `${result.message}. You can now login using the link below.`);
+        notify(kind === "login" ? "Welcome back. Your workspace is ready." : "Your account is ready. Login to start writing.");
         if (kind === "login") {
+          initIdentity();
           $("#login-dashboard-link").href = API.loginDestination();
           $("#login-dashboard-link").hidden = false;
         }
@@ -555,12 +663,13 @@
       if (!button) return;
       const post = posts.find(post => post.id === button.dataset.deletePost);
       if (!post) return;
-      askConfirmation("Are you sure you want to delete this blog?", DEMO_MODE ? `“${post.title}” will be removed from this tab's demo posts. Reset demo posts restores the original samples.` : `“${post.title}” will be permanently removed from your saved posts.`, "Delete story", async () => {
+      askConfirmation("Delete this blog?", DEMO_MODE ? `“${post.title}” will be removed from this tab's demo posts. Reset demo posts restores the original samples.` : `“${post.title}” will be permanently removed. This action cannot be undone.`, "Delete story", async () => {
         if (DEMO_MODE) DemoPosts.remove(post.id);
         else await API.remove(post.id);
         posts = DEMO_MODE ? DemoPosts.all() : posts.filter(item => item.id !== post.id);
         render();
         showMessage(message, `“${post.title}” was deleted${DEMO_MODE ? " from the demo" : ""}.`);
+        notify("Blog deleted successfully.");
         message.focus();
       });
     });
@@ -591,8 +700,11 @@
       if (DEMO_MODE && !DemoPosts.available()) showMessage(message, "Browser storage is unavailable. Demo changes may not carry between pages.", true);
     } catch (error) {
       list.setAttribute("aria-busy", "false");
+      $("#user-profile").setAttribute("aria-busy", "false");
+      ["#profile-name", "#profile-email", "#profile-created", "#stat-total", "#stat-published", "#stat-drafts"].forEach(selector => { $(selector).textContent = "—"; });
       showMessage(message, error.message, true);
-      loginLink(message);
+      if (!API.session()) loginLink(message);
+      else addRetry(message);
     }
   }
 
@@ -607,6 +719,7 @@
     const content = $("#blog-content");
     const status = $("#blog-status");
     const submit = $("#publish-button");
+    const draft = $("#save-draft-button");
     const submitLabel = $("span", submit);
     const editPage = document.body.dataset.page === "edit-blog";
     let editingId = editPage ? params.get("id") : params.get("edit");
@@ -617,6 +730,16 @@
     const updateWords = () => {
       const count = wordCount(content.value);
       $("#word-count").textContent = `${count} ${count === 1 ? "word" : "words"}`;
+    };
+    const updatePreview = () => {
+      const preview = $("#cover-preview-image");
+      const source = validImageUrl(image.value.trim()) ? image.value.trim() : LOCAL_IMAGES[0];
+      if (preview.getAttribute("src") !== source) {
+        delete preview.dataset.fallbackApplied;
+        preview.src = source;
+      }
+      preview.alt = title.value.trim() ? `Cover preview for ${title.value.trim()}` : "Preview of your story's cover";
+      $("#cover-preview-caption").textContent = title.value.trim() || "A good cover sets the scene.";
     };
     function validate(field) {
       if (field === image && !field.value.trim()) return "";
@@ -656,8 +779,8 @@
       } finally { form.setAttribute("aria-busy", "false"); }
       if (post) {
         document.title = "Edit Blog — Codomax Journal";
-        $("#editor-heading").textContent = "Make your story even better.";
-        $("#editor-subtitle").textContent = "A fresh look at an idea you've already started.";
+        $("#editor-heading").textContent = "Edit your blog.";
+        $("#editor-subtitle").textContent = "Refine your story, change its status, and save your updates.";
         title.value = post.title;
         category.value = post.category;
         image.value = post.imageUrl;
@@ -669,11 +792,25 @@
     fields.forEach(field => { field.disabled = false; });
     submitLabel.textContent = buttonLabel();
     updateWords();
+    updatePreview();
     content.addEventListener("input", updateWords);
+    title.addEventListener("input", updatePreview);
+    image.addEventListener("change", updatePreview);
+    if (draft) {
+      draft.hidden = Boolean(editingId);
+      draft.disabled = false;
+      draft.addEventListener("click", () => {
+        if (busy || submitted) return;
+        status.value = "draft";
+        status.dispatchEvent(new Event("input", { bubbles: true }));
+        form.requestSubmit(submit);
+      });
+    }
     bindValidation(fields, validate, message);
     fields.forEach(field => field.addEventListener("input", () => {
       if (submitted) {
         submit.disabled = false;
+        if (draft) draft.disabled = false;
         submitted = false;
       }
       if (!busy) submitLabel.textContent = buttonLabel();
@@ -695,6 +832,7 @@
       const wasEditing = Boolean(editingId);
       busy = true;
       submit.disabled = true;
+      if (draft) draft.disabled = true;
       fields.forEach(field => { field.disabled = true; });
       form.setAttribute("aria-busy", "true");
       submitLabel.textContent = "Saving…";
@@ -717,6 +855,8 @@
         const savedUrl = DEMO_MODE ? `create-blog.html?edit=${encodeURIComponent(editingId)}&demo=1` : `edit-blog.html?id=${encodeURIComponent(editingId)}`;
         try { history.replaceState(null, "", savedUrl); } catch { /* Local files may restrict history updates. */ }
         $("#blog-dashboard-link").hidden = false;
+        notify(wasEditing ? "Your changes are saved." : (status.value === "draft" ? "Your draft is saved. It stays private until you publish." : "Your story is published."));
+        if (draft) draft.hidden = true;
         submitted = true;
         submitLabel.textContent = "Saved";
       } catch (error) {
@@ -727,6 +867,7 @@
       } finally {
         busy = false;
         submit.disabled = submitted;
+        if (draft) draft.disabled = submitted;
         fields.forEach(field => { field.disabled = false; });
         form.setAttribute("aria-busy", "false");
         message.focus();
@@ -737,7 +878,19 @@
 
   window.addEventListener("codomax:session-ended", () => {
     if (API.requiresLogin()) $$("[data-auth-content]").forEach(node => { node.hidden = true; });
-    $("#logout-button")?.remove();
+    const article = $("#blog-details");
+    if (article?.dataset.privateDraft === "true") {
+      article.hidden = true;
+      $("#blog-details-content").replaceChildren();
+      document.title = "Read a story — Codomax Journal";
+      const message = $("#blog-details-message");
+      showMessage(message, "Please login again to read your private draft.");
+      loginLink(message);
+    }
+    initIdentity();
+  });
+  window.addEventListener("pageshow", event => {
+    if (event.persisted && document.body.dataset.page === "blog-details") initBlogDetails();
   });
   // Verify the server session before showing private content or loading user blogs.
   async function initialize() {
@@ -753,10 +906,7 @@
         if (error.status === 401) return;
         const message = $("#auth-status");
         showMessage(message, `Could not verify your session. ${error.message}`, true);
-        const retry = element("button", "text-button", "Try again");
-        retry.type = "button";
-        retry.addEventListener("click", () => window.location.reload());
-        message.append(document.createTextNode(" "), retry);
+        addRetry(message);
         return;
       }
     }

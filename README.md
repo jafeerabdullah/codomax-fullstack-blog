@@ -1,11 +1,17 @@
-# Codomax Full Stack Blog
+# Codomax Full Stack Blog Application
 
 **Author: Jafeer Abdullah**
 **Codomax Full Stack Web Development Internship**
 
-The Codomax Journal combines **Module 1 — Frontend Development**, **Module 2 — Backend Development**, **Module 3 — Database Integration**, **Module 4 — CRUD Operations**, and **Module 5 — Authentication & Dashboard**. The original HTML5, CSS3, and vanilla JavaScript design is preserved. The Express REST API supports registration, login, profiles, publishing, reading, editing, deleting, searching, and category filtering. Module 2 used temporary JSON persistence; Modules 3–5 use Supabase PostgreSQL.
+## Project Overview
 
-The architecture remains **Frontend → Node.js + Express.js → Supabase PostgreSQL**. The frontend calls Express APIs; database credentials stay in the backend. This project does not use React, Firebase, or Supabase Auth.
+**Codomax Journal** is a Full Stack Blog Application developed as part of the **Codomax Full Stack Web Development Internship**. Writers can register, publish stories, keep private drafts, and manage their work in a personal dashboard. Readers can browse, search, filter, and open complete articles.
+
+The application uses HTML5, CSS3, vanilla JavaScript, Node.js, Express.js, and the existing Supabase PostgreSQL database. Module 6 adds an editorial design system, a dedicated Blogs page, improved mobile workspaces, clearer feedback, and preparation for deploying the frontend and API together on Vercel.
+
+**Status:** local development and deployment preparation are complete. A Vercel production deployment and production smoke tests must be performed manually; there is no verified live URL yet.
+
+[Features](#features) · [Technology Stack](#technology-stack) · [Installation](#installation-and-running) · [API Endpoints](#api-endpoints) · [Testing](#testing) · [Deployment](#deployment) · [Production Checklist](#production-verification-checklist)
 
 ## Repository branches
 
@@ -14,14 +20,17 @@ The architecture remains **Frontend → Node.js + Express.js → Supabase Postgr
 - `module-3-database` extends both modules with Supabase storage and blog details.
 - `module-4-crud` extends the existing application with complete blog management, an edit page, search, and category filtering.
 - `module-5-authentication` extends the application with registration validation, protected pages, session management, and user profiles.
-- `main` combines the reviewed modules. Module 5 must be reviewed through a manual Pull Request before merging.
+- `module-6-final-deployment` contains the final UI, bug fixes, security review, and Vercel deployment preparation.
+- `main` includes the merged Modules 1–5. Module 6 is submitted through a manual Pull Request.
 
-The folder structure and installation steps below describe this Module 5 branch.
+The current structure and setup below describe Module 6. Earlier module instructions are retained as project history.
 
 ## Features
 
-- Original responsive Home, Login, Register, Dashboard, and Create Blog pages, plus Blog Details and Edit Blog pages.
-- Original blue/white theme, local images, mobile menu, article reader, accessible forms, keyboard focus, and reduced motion support.
+- Eight responsive pages: Home, Blogs, Blog Details, Login, Register, Dashboard, Create Blog, and Edit Blog.
+- A consistent navy/blue editorial design with serif reading typography, local cover images, a mobile menu, accessible forms, visible keyboard focus, and reduced motion support.
+- Navigation adapts to the login state; the homepage features an actual published API story.
+- Cover previews, a dedicated Save Draft action, reusable notifications, skeleton loading, empty states, and retry actions.
 - Frontend validation, server validation, and readable API success/error messages.
 - Registration with normalized email addresses, duplicate detection, and bcrypt password hashes.
 - Login with a signed JWT and safe user information; passwords are never returned or stored by the frontend.
@@ -35,18 +44,20 @@ The folder structure and installation steps below describe this Module 5 branch.
 - Existing MVC structure with database operations in the model layer.
 - Automated API tests and a Postman collection.
 
-## Technologies
+## Technology Stack
 
 | Layer | Technologies |
 | --- | --- |
 | Frontend | HTML5, CSS3, vanilla JavaScript, fetch() |
 | Backend | Node.js, Express.js, REST API |
 | Authentication | bcryptjs, jsonwebtoken (JWT) |
+| Database | Supabase, PostgreSQL |
+| Deployment | Vercel; exported Express app on Node.js 24, static frontend on the CDN |
 | Configuration | dotenv, cors |
 | Development | nodemon, Node's built-in test runner |
 | Module 2 persistence | users.json and blogs.json |
 
-## Folder structure
+## Project Structure
 
 ```text
 codomax-fullstack-blog/
@@ -54,6 +65,7 @@ codomax-fullstack-blog/
 ├── README.md
 ├── frontend/
 │   ├── index.html
+│   ├── blogs.html
 │   ├── login.html
 │   ├── register.html
 │   ├── dashboard.html
@@ -66,7 +78,11 @@ codomax-fullstack-blog/
 │   │   └── script.js
 │   └── images/
 └── backend/
-    ├── server.js
+    ├── app.js (Express application; Vercel entry point)
+    ├── server.js (local startup and compatibility export)
+    ├── vercel.json
+    ├── .vercelignore
+    ├── public/ (generated frontend assets; ignored by Git)
     ├── config.js
     ├── package.json
     ├── package-lock.json
@@ -92,7 +108,10 @@ codomax-fullstack-blog/
     │   ├── HttpError.js
     │   ├── jsonStore.js
     │   └── validation.js
-    ├── scripts/setup-env.js
+    ├── scripts/
+    │   ├── setup-env.js
+    │   ├── build-static.js
+    │   └── verify-supabase.js
     ├── data/
     │   ├── users.json
     │   └── blogs.json
@@ -104,7 +123,14 @@ codomax-fullstack-blog/
 
 ## Installation and running
 
-Install **Node.js 22 or newer**, then open a terminal in the project folder:
+Install **Node.js 24**, then use this existing checkout. For a fresh installation:
+
+```sh
+git clone https://github.com/jafeerabdullah/codomax-fullstack-blog.git
+cd codomax-fullstack-blog
+```
+
+From the project folder:
 
 ```sh
 cd backend
@@ -116,24 +142,26 @@ npm run dev
 
 Run `setup-env` to create a local `.env` with a random JWT secret. It preserves an existing file. `.env` is ignored by Git and is not included in the repository; `.env.example` documents the settings without a real secret.
 
-Open **http://localhost:5000/frontend/** to use the application. Express serves the existing frontend files without a separate frontend build or installation.
+Open **http://localhost:5000/** to use the application. The existing **/frontend/** paths also work. Express serves the original frontend sources during local development; no frontend dependency installation is needed.
 
-**http://localhost:5000/** returns the required health response:
+**http://localhost:5000/health** returns the application health response:
 
-```text
-Blog API Server Running
+```json
+{ "status": "ok" }
 ```
+
+This endpoint confirms that Express is responding; it does not query the database.
 
 Use `npm start` for a server without file watching. If PowerShell blocks npm's script wrapper, use `npm.cmd ci`, `npm.cmd run dev`, and equivalent `npm.cmd` commands.
 
-The server uses port 5000 and the local loopback interface. For a custom port, update `PORT`, the matching CORS origin, and the API base URL in `frontend/js/api.js`.
+The server uses port 5000 and the local loopback interface. For a custom port, update `PORT` and the matching CORS origin. Relative `/api` requests need no frontend port or production URL changes.
 
 ## Using the application
 
 1. Register with your name, email, password, and confirmation.
 2. Login using the registered email and password, then select **Open dashboard**.
 3. Choose **Create new blog**, complete the form, and publish.
-4. Your saved post appears in the dashboard and on Home.
+4. Your published post appears in the dashboard, Home, and Blogs. Use **Save draft** or the status selector to keep a story private.
 5. Use **View** (including your drafts), **Edit**, or **Delete** and confirm. **Logout** clears the tab's login session and returns to Login.
 
 The application has no default account or password. A new database starts with empty users/blogs tables. Register as **Jafeer Abdullah** to publish under that name. Other users publish under their registered names.
@@ -146,7 +174,7 @@ The original sample workspace remains at **http://localhost:5000/frontend/dashbo
 
 Demo editing, publishing, deleting, and **Reset demo posts** use the original tab's sessionStorage. They never modify backend posts/accounts, and the interface labels this mode clearly. While logged in, open the regular dashboard to manage real saved posts. The regular Home feed uses API posts only. Open Home with `?demo=1` to read the preserved sample stories.
 
-## Environment settings
+## Environment Variables
 
 | Setting | Purpose |
 | --- | --- |
@@ -158,9 +186,9 @@ Demo editing, publishing, deleting, and **Reset demo posts** use the original ta
 | SUPABASE_URL | Your Supabase project's URL; backend only |
 | SUPABASE_SERVICE_ROLE_KEY | Backend database access key; never share or place it in frontend files |
 
-The CORS allowlist includes localhost and 127.0.0.1 on ports 5000 and 5500. A VS Code Live Server preview on port 5500 can call the API on 5000. Use the Express-served frontend for the simplest setup; file:// is not configured as an API origin.
+Use the Express-served frontend for API features. Relative `/api` requests work on the same origin locally and in production; a standalone static preview needs its own API proxy. The backend retains an explicit local CORS allowlist. Production origins are configured in Vercel as described below. Secret values belong only in the ignored local environment file or Vercel environment settings.
 
-## API documentation
+## API Endpoints
 
 Request bodies use `Content-Type: application/json`. Protected requests require:
 
@@ -170,7 +198,8 @@ Authorization: Bearer YOUR_LOGIN_TOKEN
 
 | Method | Endpoint | Access | Purpose |
 | --- | --- | --- | --- |
-| GET | / | Public | Health response |
+| GET | / | Public | Journal home page |
+| GET | /health | Public | `{ "status": "ok" }`; no credentials or database information |
 | POST | /api/auth/register | Public | Create account |
 | POST | /api/auth/login | Public | JWT and safe user information |
 | GET | /api/auth/me | JWT | Current user |
@@ -269,7 +298,7 @@ npx --yes newman run postman/Codomax-Module-2.postman_collection.json
 
 Run this from backend/ while the server is running. Newman is an optional QA tool, not an app dependency. Change the email before repeating registration.
 
-## Automated checks
+## Testing
 
 From backend/:
 
@@ -277,9 +306,17 @@ From backend/:
 npm test
 ```
 
-Twenty-five automated tests cover the existing API features plus registration strength, Unicode names, safe profiles, exact statistics beyond the database response limit, invalid JWT claims, deleted accounts, token storage, expiry, authenticated 401 responses, logout, blocked storage, and safe login return links. API tests use the real Supabase JavaScript SDK against an isolated local PostgREST HTTP fixture and ephemeral ports; session tests exercise the actual frontend API module with browser storage/navigation and a controlled clock. Tests never use your live Supabase credentials or change the historical JSON files. Live database verification is a separate command described below.
+Twenty-seven automated tests cover the existing API features plus registration strength, Unicode names, safe profiles, exact statistics beyond the database response limit, invalid JWT claims, deleted accounts, token storage, expiry, authenticated 401 responses, logout, blocked storage, and safe login return links. Module 6 also verifies all eight static pages and assets at root/legacy paths, the health response, security headers, controlled local/production CORS, and relative API requests on HTTPS production/preview origins and custom local ports. API tests use the real Supabase JavaScript SDK against an isolated local PostgREST HTTP fixture and ephemeral ports; session tests exercise the actual frontend API module with browser storage/navigation and a controlled clock. Tests never use your live Supabase credentials or change the historical JSON files. Live database verification is a separate command described below.
 
-Browser verification covers protected-page redirects, registration/login, profiles, dashboard statistics, create/edit/View/delete, draft status, search/filter controls, delete cancellation, token expiry, logout/history navigation, original demo interactions, and responsive layouts from 320px to 1920px. The original CSS rules are retained, with additions for search and profile controls. Browser checks using the local fixture verify the UI/API flow; they do not establish live Supabase connectivity.
+Browser verification covers protected-page redirects, registration/login, profiles, dashboard statistics, create/edit/View/delete, draft status, search/filter controls, delete cancellation, token expiry, logout/history navigation, original demo interactions, and responsive layouts from 320px to 1920px. Module 6 replaces the stylesheet with one shared design system for all eight existing/new pages. Fixture browser checks verify UI/API behavior; the separate live Supabase command verifies actual database connectivity and persistence.
+
+Prepare and inspect the deployment assets locally:
+
+```sh
+npm run build
+```
+
+This creates ignored `backend/public/` from the original frontend sources. It copies only the HTML, CSS, JavaScript, and image assets; it never copies backend configuration or environment files. Local Express uses `frontend/` directly, so the build is only required for deployment.
 
 The nodemon configuration watches only source directories and ignores data writes. A Chokidar 4 override avoids the older watcher's vulnerable brace-pattern dependency; its startup and automatic restart are verified.
 
@@ -299,7 +336,7 @@ Supabase hosts the PostgreSQL database. Only the Express backend uses `@supabase
 
 ### Database setup
 
-1. Run `backend/database/module-3.sql` in your Supabase SQL editor if the existing users/blogs schema has not been created. Modules 4 and 5 use the same schema and need no migration.
+1. Run `backend/database/module-3.sql` in your Supabase SQL editor if the existing users/blogs schema has not been created. Modules 4–6 use the same schema and need no migration.
 2. Run `npm run setup-env` from `backend/` to create the ignored local `.env` and random JWT secret.
 3. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `backend/.env` locally. `.env.example` lists the settings without real credentials.
 4. Start Express with `npm run dev`. Keep database credentials in the backend; the browser calls only Express.
@@ -334,7 +371,7 @@ npm run test:supabase
 npm run dev
 ```
 
-On PowerShell, use `npm.cmd` if script execution policy blocks `npm`. No frontend install or build is needed. Open **http://localhost:5000/frontend/** and select **Blogs**, which points to the existing Home `#blogs` section. The Module 4 journal feed shows database posts. Database **Read more** links open `blog-details.html?id=BLOG_ID`, showing title, cover, category, author, publication date, and full plain-text content. The original samples remain at `index.html?demo=1`, with their article dialog and demo behavior.
+On PowerShell, use `npm.cmd` if script execution policy blocks `npm`. No frontend install or build is needed for local use. Open **http://localhost:5000/frontend/** and select **Blogs**. Module 6 adds `blogs.html` while retaining Home's `#blogs` feed. Database **Read more** links open `blog-details.html?id=BLOG_ID`, showing title, cover, category, author, publication date, reading time, and full plain-text content. The original samples remain at `index.html?demo=1`, with their article dialog and demo behavior.
 
 If the default npm registry returns HTTP 403 in this environment, `npm.cmd ci --registry=https://registry.npmmirror.com` is the tested installation fallback. The committed lockfile retains the normal npm registry URLs and package integrity hashes; no global registry setting is changed.
 
@@ -369,7 +406,7 @@ Module 4 extends the existing MVC application on `module-4-crud`. The flow stays
 - Manage **My Blogs** in the dashboard, including title, category, date, status, Edit, and Delete.
 - Update your own blog at `frontend/edit-blog.html?id=BLOG_ID`, with existing fields prefilled.
 - Save private drafts, publish them, or move published blogs back to draft.
-- Delete your own blog only after the confirmation **“Are you sure you want to delete this blog?”**. Cancel leaves the blog unchanged.
+- Delete your own blog only after the confirmation **“Delete this blog?”** and the warning **“This action cannot be undone.”**. Cancel leaves the blog unchanged.
 - Search published titles/content, ignoring case and treating punctuation as literal text.
 - Filter by Technology, Web Development, Design, Productivity, or Personal Growth; combine category and search.
 - Loading, empty, success, and error states across the feed, dashboard, and editors.
@@ -511,3 +548,152 @@ git push -u origin module-5-authentication
 ```
 
 Stop after pushing. Create the Pull Request **module-5-authentication → main** manually; do not merge automatically.
+
+## Database
+
+The application continues using the existing `backend/database/module-3.sql` schema:
+
+| Table | Important fields and behavior |
+| --- | --- |
+| users | UUID ID, name, unique normalized email, bcrypt password hash, creation/update timestamps. Password hashes stay on the server. |
+| blogs | UUID ID, title, category, plain-text content, cover image, author ID/name, draft/published status, creation/update timestamps. Author ID references users; deleting a verification account removes its associated blogs. |
+
+Automatic timestamps, constraints, and row level security remain unchanged. Express uses the server database client and enforces JWT authentication, per-user queries, draft privacy, and ownership. Modules 4–6 require **no new tables, schema changes, or migrations**. Do not rerun setup against an already configured database unnecessarily.
+
+## Security
+
+- Registration stores bcrypt hashes with cost 12. Responses and frontend storage exclude passwords and hashes.
+- Express verifies JWT signatures, allowed algorithm, issuer, audience, expiry, UUID subject, and the existing user record. Browser checks help the interface; the backend remains authoritative.
+- Protected APIs require Bearer authentication. Profile/statistics/My Blogs use the verified account ID. Update/delete check ownership both before and during the database write.
+- Only published posts appear publicly. Draft details require the owner's JWT; unavailable drafts return 404. Private pages verify the server session before revealing content. Private article content clears on logout/expiry and is rechecked after cached history restoration.
+- Supabase service credentials and the JWT signing secret belong only in the backend environment. `.env` and generated deployment files are excluded from Git; the static build uses an asset allowlist.
+- CORS permits explicit origins. JSON bodies are limited to 256 KB; malformed JSON and database errors receive sanitized responses without secrets or stack traces.
+- Blog content renders as text. A Content Security Policy, anti-framing policy, content-type protection, referrer policy, and restricted browser permissions apply to the app. API and health responses use `Cache-Control: no-store`.
+
+## Internship Modules
+
+| Module | Work |
+| --- | --- |
+| 1 — Frontend Development | Original responsive journal, account/editor pages, sample posts, reader and demo workspace. |
+| 2 — Backend Development | Express MVC REST API, validation, bcrypt/JWT, JSON persistence utility, API tests and Postman collection. |
+| 3 — Database Integration | Existing Supabase PostgreSQL users/blogs schema, model integration, persisted blog details and live verification. |
+| 4 — CRUD Operations | Complete ownership-protected create/read/update/delete, private drafts, search and category filtering. |
+| 5 — Authentication & Dashboard | Stronger registration, protected pages, profile, exact own-blog statistics, tab sessions and logout/expiry handling. |
+| 6 — Final Project & Deployment | Cohesive final UI, dedicated listing, responsive/accessibility improvements, bug/security review and Vercel preparation. |
+
+## Module 6 — Final Project & Deployment
+
+Module 6 continues this repository on `module-6-final-deployment`. It preserves the HTML/CSS/vanilla JavaScript frontend, Node/Express MVC API, existing Supabase schema, JWT/bcrypt authentication, and original explicit demo mode.
+
+### Final UI and behavior
+
+All eight pages share spacing, color, typography, button, form, card, navigation, and footer styles. Home features a real published story; Blogs has dedicated search/category controls and recovery actions. Article pages prioritize the title, reading metadata, cover, and readable paragraphs. Login/Register use compact mobile forms and an understated desktop brand panel. Editors provide cover previews, writing guidance, draft/publish actions, loading indicators, and clear feedback.
+
+The dashboard includes a named welcome, account details, Total/Published/Draft statistics, responsive My Blogs cards, labeled status, View/Edit/Delete actions, and a Create Blog CTA. Deletion uses the existing accessible dialog with an explicit permanent-action warning. Notifications supplement persistent inline messages; failed requests offer useful recovery rather than blank sections.
+
+Fixes include relative production API URLs, login-aware navigation, real homepage featured data, incomplete failed-profile loading, misleading statistics on failure, readable network errors, retry controls, cached private draft content after logout/expiry, and keyboard focus escaping an open dialog. The existing registration, CRUD, session, ownership, search/filter, and demo contracts remain compatible.
+
+Responsive checks cover every page at **320, 375, 425, 768, 1024, 1280, 1440, and 1920 pixels**, with no horizontal overflow. Mobile navigation collapses, workspaces/cards/forms stack, and actions remain easy to tap. Accessible labels, semantic headings, image alternatives, visible focus, live feedback, native modal keyboard behavior, status text, and reduced motion are included. These checks are practical verification, not a claim of a formal accessibility certification.
+
+### Local verification record
+
+- `npm test`: **27 passed** across API and frontend-session suites.
+- `npm run test:supabase`: **passed**, including real database persistence, registration/hash/login, profile/counts, CRUD/search/filter, draft privacy and ownership. Its uniquely identified records were cleaned up.
+- `npm run build`: **passed**, preparing only frontend assets.
+- Chromium browser checks: registration/login, protected pages, CRUD/drafts, profile/statistics, filters, missing/error/retry states, expiry/history, original demo and all eight responsive layouts. Desktop/mobile screenshots were inspected.
+- Complete Chromium flow against real Supabase: **passed** on a custom local port. Registration, stored bcrypt hash, login/profile, published/draft creation, counts, listing/search/filter, details, persisted editing, second-account isolation/ownership, logout/history/idle-expiry draft privacy, deletion cancellation, database deletion, empty dashboard, mobile logout and protected-page redirect were verified. Both unique verification accounts and their posts were removed.
+- Accessibility checks: **passed** for all eight pages' labels, image alt text, one H1 and unique IDs; keyboard skip links/focus, mobile-menu Escape/focus, dialog focus containment/Escape/restoration, reduced motion, and main text-token contrast of at least 4.5:1 on white/pale backgrounds.
+
+Browser interactions were executed through Chromium automation and reviewed through screenshots. Hosted Vercel behavior remains pending until the manual deployment and production checklist below are completed.
+
+### Module 6 Git submission
+
+After local verification and a secret/diff review, run from this project root:
+
+```sh
+git status
+git diff
+git check-ignore backend/.env
+git add .
+git commit -m "Complete Module 6 - Final Project and Vercel Deployment Preparation"
+git push -u origin module-6-final-deployment
+```
+
+Stop after pushing. The user manually creates **module-6-final-deployment → main** and reviews/merges it. Module 6 must not be committed directly to `main`, merged automatically, or automatically deployed.
+
+## Deployment
+
+**Prepared for Vercel; not deployed.** Deploy the frontend and Express API as one project, using Vercel's native Express support. `backend/app.js` configures and exports Express without starting a listener; `backend/server.js` preserves local `npm start`/`npm run dev` and `PORT` support. `npm run build` copies the original sibling frontend assets into ignored `backend/public/`, which Vercel serves on its CDN. API and health routes run through the exported Express application.
+
+### Exact project settings
+
+| Vercel setting | Value |
+| --- | --- |
+| Git repository | `jafeerabdullah/codomax-fullstack-blog` |
+| Root Directory | **backend** |
+| Include source files outside the Root Directory in the Build Step | **Enabled**; the static build reads `../frontend` |
+| Framework Preset | **Express** |
+| Install Command | **npm ci** |
+| Build Command | **npm run build** |
+| Output Directory | **Leave the override disabled/blank**; Express handles `public/` automatically |
+| Node.js Version | **24.x**, matching `backend/package.json` |
+| Production Branch | **main**, after the user's manual Module 6 PR merge |
+
+Do not set Output Directory to `public`: the native Express build needs to discover the exported application at its default location. The current configuration is `backend/vercel.json`; it declares Express and the commands above. Rewrites retain `/frontend` and `/frontend/:path*` links while canonical pages live at `/index.html`, `/blogs.html`, etc. Security headers apply to both static CDN assets and function responses. No second API deployment, frontend framework, database migration, or additional serverless wrapper is required.
+
+The settings follow the official [Express deployment documentation](https://vercel.com/docs/frameworks/backend/express), [project configuration](https://vercel.com/docs/project-configuration/vercel-json), [outside-root source setting](https://vercel.com/docs/monorepos/monorepo-faq), and [Node.js runtime versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions).
+
+### Vercel environment variables
+
+Configure values in **Project → Settings → Environment Variables**. This document lists names and purposes only, never actual credentials.
+
+| Name | Requirement | Handling |
+| --- | --- | --- |
+| SUPABASE_URL | Required | Existing project's backend connection URL. |
+| SUPABASE_SERVICE_ROLE_KEY | Required | **Sensitive** backend database key. Never expose it to client code. |
+| JWT_SECRET | Required | **Sensitive**, cryptographically random signing secret of at least 32 characters. |
+| JWT_EXPIRES_IN | Optional | Overrides the existing default token lifetime of one hour. |
+| CORS_ORIGINS | Required for production browser access | Exact HTTPS production origin and any intentionally supported additional origins. |
+
+Apply them to **Production** and also to **Preview** if testing the branch before merge. Preview needs its own explicit allowed origin. `PORT` and `DATA_DIR` are unnecessary for Vercel. The application uses Express authentication, so no Supabase publishable/JWKS setting is required. Keep local credentials in ignored `backend/.env`; do not upload that file or add secret values to `vercel.json`.
+
+### Manual deployment steps
+
+1. Review the pushed `module-6-final-deployment` branch, manually create its PR into `main`, and merge it when approved. A branch preview can be tested first without merging.
+2. Sign in to Vercel, choose **Add New → Project**, and import the existing GitHub repository.
+3. Set Root Directory to **backend** and enable inclusion of source files outside that directory. Select **Express**, Node **24.x**, Install **npm ci**, Build **npm run build**, and leave the Output Directory override off.
+4. Add the environment variable names above with your actual backend values. Set an initial intended production origin in `CORS_ORIGINS`; check the assigned URL after deployment.
+5. Click **Deploy**. Inspect the build logs: dependency installation, static asset build, and native Express function must finish successfully.
+6. Copy the assigned HTTPS production URL. Update `CORS_ORIGINS` to its exact origin, add any custom domain intentionally supported, then **redeploy** so the new environment is applied. For a preview, use that preview's exact origin in the Preview environment and redeploy it.
+7. Verify `/health` returns exactly `{ "status": "ok" }`, then complete every production check below using the HTTPS URL.
+8. Replace `<VERCEL_URL>` in Live Demo only after the deployed application and database flows pass. Remove only the production records you created for testing.
+
+### Production CORS configuration
+
+Use the final Vercel **origin** (scheme plus hostname), such as your assigned HTTPS project domain, in `CORS_ORIGINS`. Include neither a page path nor a trailing slash. Additional production/custom/preview origins are separated with commas. Explicit local origins can also be listed when intentionally needed. Do not use `*` or a wildcard preview-domain suffix. The frontend's relative `/api` calls use that same origin and require no URL edits. Changes to environment settings require a redeployment.
+
+### Production verification checklist
+
+These checks are **pending until deployment**:
+
+- [ ] HTTPS opens Home, Blogs, Blog Details, Login, Register, Dashboard, Create, and Edit; direct links and legacy `/frontend/` links work.
+- [ ] CSS, JavaScript, local covers, favicon, external-cover fallback, navigation, footer and mobile menu work; `/health` returns only the expected JSON.
+- [ ] Registration validation, duplicate rejection, new user storage and bcrypt hashing work in Supabase; passwords/hashes are absent from API responses.
+- [ ] Correct/incorrect login, JWT-protected profile/dashboard, exact per-user counts, missing/invalid/expired tokens, and logout/history access behave correctly.
+- [ ] Create published/draft blogs; verify Supabase storage and dashboard counts. Published blogs appear publicly; another user or logged-out reader cannot read a draft.
+- [ ] Details, title/content search, category filters, combined filters, clear-filter recovery, and readable plain-text content work.
+- [ ] Editing persists in Supabase. Cancelled deletion leaves data intact; confirmed deletion removes it and updates statistics. Another user's edit/delete returns 403.
+- [ ] Empty, loading, missing-post, unauthorized, API/database failure and retry states remain readable; backend errors reveal no internal details.
+- [ ] Mobile 320/375/425, tablet 768/1024 and desktop 1280/1440+ layouts have no overflow or clipping. Keyboard focus, labeled forms, password toggles, modal cancellation and reduced motion work.
+- [ ] Browser console and Vercel function logs show no application errors; CORS accepts only intended origins; environment files and backend secrets are not served or included in frontend assets.
+- [ ] Remove only the accounts/posts created for verification, record the successful URL, and update Live Demo.
+
+## Live Demo
+
+Live Application: `<VERCEL_URL>`
+
+Pending manual Vercel deployment and production verification. No live deployment has been claimed.
+
+## GitHub Repository
+
+[jafeerabdullah/codomax-fullstack-blog](https://github.com/jafeerabdullah/codomax-fullstack-blog)

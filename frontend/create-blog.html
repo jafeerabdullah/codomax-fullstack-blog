@@ -17,7 +17,7 @@
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Codomax Journal home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span></a><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
         <nav class="primary-nav" id="primary-nav" aria-label="Dashboard navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="create-blog.html" aria-current="page">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip" data-auth-content hidden><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Writer</span><small data-writer-role>Writer</small></span></span>
+          <a href="index.html">Home</a><a href="blogs.html">Blogs</a><a href="dashboard.html">Dashboard</a><a href="create-blog.html" aria-current="page">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip" data-auth-content hidden><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Writer</span><small data-writer-role>Writer</small></span></span>
         </nav>
       </div>
     </header>
@@ -26,7 +26,7 @@
       <a class="back-link" href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>Back to dashboard</a>
       <div class="workspace-heading">
         <div>
-          <span class="eyebrow">FROM A SPARK TO A STORY</span><h1 id="editor-heading">Create a new blog<span class="accent-text">.</span></h1><p id="editor-subtitle">You have a perspective worth sharing. Give it a home.</p>
+          <span class="eyebrow">FROM A SPARK TO A STORY</span><h1 id="editor-heading">Create a new blog<span class="accent-text">.</span></h1><p id="editor-subtitle">Shape your idea, save a draft, and publish when you’re ready.</p>
         </div>
         <span class="editor-badge">YOUR WRITING SPACE</span>
       </div>
@@ -40,7 +40,7 @@
               <label for="category">Category <span class="required-indicator" aria-hidden="true">*</span></label><select id="category" name="category" required aria-describedby="category-error"><option value="">Choose a category</option><option value="Web Development">Web Development</option><option value="Design">Design</option><option value="Productivity">Productivity</option><option value="Technology">Technology</option><option value="Personal Growth">Personal Growth</option></select><span class="field-error" id="category-error"></span>
             </div>
             <div class="field">
-              <label for="image-url">Cover image URL</label><input id="image-url" name="imageUrl" type="text" inputmode="url" placeholder="https://example.com/your-image.jpg" maxlength="2048" aria-describedby="image-url-help image-url-error"><span class="field-help" id="image-url-help">Use an HTTPS/HTTP image link or a bundled image, such as images/code-workspace.jpg. Leave blank to use the default cover.</span><span class="field-error" id="image-url-error"></span>
+              <label for="image-url">Cover image URL</label><input id="image-url" name="imageUrl" type="text" inputmode="url" placeholder="https://example.com/your-image.jpg" maxlength="2048" aria-describedby="image-url-help image-url-error"><span class="field-help" id="image-url-help">Add an image link, or leave this blank for a journal cover. HTTPS images work best.</span><span class="field-error" id="image-url-error"></span>
             </div>
             <div class="field">
               <div class="label-row">
@@ -54,12 +54,13 @@
             <div class="form-message" id="blog-message" role="status" aria-live="polite" tabindex="-1" hidden>
             </div>
             <div class="editor-actions">
-              <a class="button button-secondary" href="dashboard.html">Cancel</a><button class="button button-primary" id="publish-button" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 16-8-6 16-3-7-7-1ZM11 13l9-9"/></svg><span>Publish blog</span></button>
+              <a class="button button-secondary" href="dashboard.html">Cancel</a><button class="button button-secondary" id="save-draft-button" type="button" disabled>Save draft</button><button class="button button-primary" id="publish-button" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 16-8-6 16-3-7-7-1ZM11 13l9-9"/></svg><span>Publish blog</span></button>
             </div>
             <a class="success-dashboard-link" id="blog-dashboard-link" href="dashboard.html" hidden>View your stories in the dashboard</a>
           </form>
         </section>
         <aside class="editor-aside">
+          <section class="cover-preview" aria-labelledby="cover-preview-heading"><div><span class="eyebrow">FIRST IMPRESSIONS</span><h2 id="cover-preview-heading">Your story’s cover</h2></div><img id="cover-preview-image" src="images/code-workspace.jpg" alt="Preview of your story’s cover" width="1200" height="800"><p id="cover-preview-caption">A good cover sets the scene.</p></section>
           <section class="writing-tips">
             <span class="little-spark" aria-hidden="true">✦</span><h2>A little inspiration.</h2><p>You don't need the perfect words to get started. You just need something to say.</p>
             <ol>
@@ -84,7 +85,7 @@
             </ol>
           </section>
           <div class="demo-note">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>A safe place to try things.</strong>Login to publish your story under your own name. Your posts are saved by the backend.</p>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Publish at your own pace.</strong>Only you can see a draft. Publish when your story is ready for the journal.</p>
           </div>
         </aside>
       </div>
@@ -93,11 +94,11 @@
       <div class="container footer-main">
         <a class="brand footer-brand" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span></span></a><p>A home for ideas worth sharing.</p>
         <nav aria-label="Footer navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="register.html">Register</a>
+          <a href="index.html">Home</a><a href="blogs.html">Blogs</a><a href="dashboard.html">Dashboard</a><a href="register.html">Register</a>
         </nav>
       </div>
       <div class="container footer-bottom">
-        <span>© <span data-year>2026</span> Codomax Journal. All rights reserved.</span><span>Made with curiosity & a little code.</span>
+        <span>© <span data-year>2026</span> Codomax Journal. All rights reserved.</span><span>Independent ideas. Shared perspectives.</span>
       </div>
     </footer>
     <noscript>
