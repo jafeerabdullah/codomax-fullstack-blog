@@ -2,7 +2,7 @@
 
 const router = require("express").Router();
 const controller = require("../controllers/blogController");
-const requireAuth = require("../middleware/auth");
+const requireAuth = require("../middleware/authMiddleware");
 
 router.get("/", controller.listBlogs);
 router.get("/user", requireAuth, controller.listMyBlogs);

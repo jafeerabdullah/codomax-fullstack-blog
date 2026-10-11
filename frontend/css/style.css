@@ -462,3 +462,14 @@ dialog::backdrop { background: rgb(8 22 35 / 65%); backdrop-filter: blur(4px); }
 .blog-controls .field { flex: 1 1 220px; }
 .blog-controls .button, .blog-controls .text-button { min-height: 48px; }
 .blog-list-message { margin-bottom: 24px; }
+
+/* Module 5 account details retain the workspace's card design. */
+.auth-status { padding-block: 32px; color: var(--muted); }
+.auth-status.is-error { color: var(--red); }
+.profile-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; padding: 23px 25px; margin-bottom: 28px; background: var(--white); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.profile-panel h2 { font-size: 1.25rem; margin-top: 6px; }
+.profile-details { display: flex; flex: 1 1 440px; flex-wrap: wrap; gap: 20px 32px; min-width: 0; }
+.profile-details > div { flex: 1 1 150px; min-width: 0; }
+.profile-details dt { color: var(--muted); font-size: .75rem; margin-bottom: 6px; }
+.profile-details dd { margin: 0; color: var(--navy); font-size: .875rem; overflow-wrap: anywhere; }
+.row-actions { flex-wrap: wrap; }

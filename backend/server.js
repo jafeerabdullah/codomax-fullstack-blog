@@ -21,6 +21,7 @@ app.use(express.json({ limit: "256kb" }));
 app.use("/api", (req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
 app.get("/", (req, res) => res.type("text/plain").send("Blog API Server Running"));
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/blogs", require("./routes/blogRoutes"));
 app.use("/frontend", express.static(path.join(__dirname, "..", "frontend"), { index: "index.html" }));
 app.use((req, res, next) => next(new HttpError(404, "Route not found.")));

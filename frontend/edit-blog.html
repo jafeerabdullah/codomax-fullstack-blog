@@ -17,11 +17,12 @@
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Codomax Journal home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span></a><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
         <nav class="primary-nav" id="primary-nav" aria-label="Dashboard navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="create-blog.html">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip"><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Jafeer Abdullah</span><small data-writer-role>Demo writer</small></span></span>
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="create-blog.html">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip" data-auth-content hidden><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Writer</span><small data-writer-role>Writer</small></span></span>
         </nav>
       </div>
     </header>
-    <main class="container editor-main" id="main-content">
+    <div class="container auth-status" id="auth-status" role="status" aria-live="polite">Checking your session…</div>
+    <main class="container editor-main" id="main-content" data-auth-content hidden>
       <a class="back-link" href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>Back to dashboard</a>
       <div class="workspace-heading">
         <div>

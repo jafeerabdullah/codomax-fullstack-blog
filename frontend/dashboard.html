@@ -17,38 +17,47 @@
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Codomax Journal home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span><span class="brand-label">THE JOURNAL</span></span></a><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
         <nav class="primary-nav" id="primary-nav" aria-label="Dashboard navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html" aria-current="page">Dashboard</a><a href="create-blog.html">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip"><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Jafeer Abdullah</span><small data-writer-role>Demo writer</small></span></span>
+          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html" aria-current="page">Dashboard</a><a href="create-blog.html">Create blog</a><span class="nav-divider" aria-hidden="true"></span><span class="profile-chip" data-auth-content hidden><span class="avatar" data-writer-initials>JA</span><span><span data-writer-name>Writer</span><small data-writer-role>Writer</small></span></span>
         </nav>
       </div>
     </header>
-    <main class="container workspace-main" id="main-content">
+    <div class="container auth-status" id="auth-status" role="status" aria-live="polite">Checking your session…</div>
+    <main class="container workspace-main" id="main-content" data-auth-content hidden>
       <div class="workspace-heading">
         <div>
-          <span class="eyebrow">YOUR CREATIVE CORNER</span><h1 id="dashboard-heading">Welcome back, Jafeer Abdullah<span class="accent-text">.</span></h1><p>A fresh page. A new possibility. What will you share today?</p>
+          <span class="eyebrow">YOUR CREATIVE CORNER</span><h1 id="dashboard-heading">Welcome to your dashboard<span class="accent-text">.</span></h1><p>A fresh page. A new possibility. What will you share today?</p>
         </div>
         <a class="button button-primary" href="create-blog.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Create new blog</a>
       </div>
       <div class="workspace-notice">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg><p><strong>Demo workspace.</strong> Explore the original sample posts here, or login to manage your saved stories.</p>
       </div>
+      <section class="profile-panel" id="user-profile" aria-labelledby="profile-heading" aria-busy="true">
+        <div><span class="eyebrow">YOUR ACCOUNT</span><h2 id="profile-heading">Writer profile</h2></div>
+        <dl class="profile-details">
+          <div><dt>Name</dt><dd id="profile-name">Loading…</dd></div>
+          <div><dt>Email</dt><dd id="profile-email">Loading…</dd></div>
+          <div><dt>Account created</dt><dd><time id="profile-created">Loading…</time></dd></div>
+        </dl>
+      </section>
       <section class="stats-grid" aria-label="Blog statistics">
         <article class="stat-card">
           <div class="stat-top">
             <span>Total blogs</span><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
           </div>
-          <strong id="stat-total">4</strong><span class="stat-caption">Ideas turned into stories</span>
+          <strong id="stat-total">0</strong><span class="stat-caption">Ideas turned into stories</span>
         </article>
         <article class="stat-card">
           <div class="stat-top">
             <span>Published blogs</span><span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
           </div>
-          <strong id="stat-published">3</strong><span class="stat-caption">Ready for the journal</span>
+          <strong id="stat-published">0</strong><span class="stat-caption">Ready for the journal</span>
         </article>
         <article class="stat-card">
           <div class="stat-top">
             <span>Draft blogs</span><span class="stat-icon stat-icon-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5M4 20l5-1L20 8a3.5 3.5 0 0 0-5-5L4 14l-1 7Z"/></svg></span>
           </div>
-          <strong id="stat-drafts">1</strong><span class="stat-caption">A little room to grow</span>
+          <strong id="stat-drafts">0</strong><span class="stat-caption">A little room to grow</span>
         </article>
       </section>
       <section class="posts-panel" aria-labelledby="posts-heading">
@@ -56,7 +65,7 @@
           <div>
             <h2 id="posts-heading">My Blogs</h2><p>Keep creating. You're building something good.</p>
           </div>
-          <span class="count-label" id="post-count">4 posts</span>
+          <span class="count-label" id="post-count">0 posts</span>
         </div>
         <div class="form-message panel-message" id="dashboard-message" role="status" aria-live="polite" tabindex="-1" hidden>
         </div>
@@ -91,7 +100,7 @@
       </div>
     </dialog>
     <noscript>
-      <p class="noscript-note">Enable JavaScript to view and manage the sample posts in this demo dashboard.</p>
+      <p class="noscript-note">Enable JavaScript to verify your login and view your dashboard.</p>
     </noscript>
   </body>
 </html>
