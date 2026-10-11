@@ -179,7 +179,7 @@
     message.append(document.createTextNode(" "), link);
   }
   function applyApiErrors(form, error) {
-    const names = { name: "full-name", email: "email", password: "password", title: "blog-title", category: "category", imageUrl: "image-url", content: "blog-content" };
+    const names = { name: "full-name", email: "email", password: "password", title: "blog-title", category: "category", imageUrl: "image-url", content: "blog-content", status: "blog-status" };
     for (const [name, text] of Object.entries(error.fields || {})) {
       const field = document.getElementById(names[name]);
       if (field && form.contains(field)) fieldError(field, text);
@@ -268,19 +268,56 @@
   async function initHome() {
     const grid = $("#blog-grid");
     if (!grid) return;
-    const samples = DemoPosts.all().filter(post => post.status === "published");
-    let published = samples;
+    const form = $("#blog-filters");
+    const search = $("#blog-search");
+    const category = $("#blog-category-filter");
+    const message = $("#blog-list-message");
+    const submit = $("[type='submit']", form);
+    search.value = params.get("search") || "";
+    category.value = CATEGORIES.includes(params.get("category")) ? params.get("category") : "";
+    let published = [];
+    let requestId = 0;
     function render() {
       grid.replaceChildren(...published.map(makeBlogCard));
       if (published.length) return;
       const empty = element("div", "empty-state");
-      empty.append(element("h3", "", "The next story could be yours."), element("p", "", "Create a blog to share your next idea."));
+      const filtered = search.value.trim() || category.value;
+      empty.append(element("h3", "", filtered ? "No blogs match your search." : "The next story could be yours."), element("p", "", filtered ? "Try another search or clear the filters." : "Create a blog to share your next idea."));
       const link = element("a", "button button-primary", "Open dashboard");
       link.href = "dashboard.html";
       empty.append(link);
       grid.append(empty);
     }
-    render();
+    async function load() {
+      const currentRequest = ++requestId;
+      const filters = { search: search.value.trim(), category: category.value };
+      const url = new URL(window.location.href);
+      for (const name of ["search", "category"]) {
+        if (filters[name]) url.searchParams.set(name, filters[name]);
+        else url.searchParams.delete(name);
+      }
+      try { history.replaceState(null, "", url); } catch { /* Local previews may restrict history updates. */ }
+      grid.setAttribute("aria-busy", "true");
+      grid.replaceChildren();
+      submit.disabled = true;
+      showMessage(message, "Loading blogs…");
+      try {
+        const posts = DEMO_MODE ? DemoPosts.all().filter(post => post.status === "published" &&
+          (!filters.category || post.category === filters.category) &&
+          (!filters.search || `${post.title}\n${post.content}`.toLowerCase().includes(filters.search.toLowerCase()))) : await API.published(filters);
+        if (currentRequest !== requestId) return;
+        published = posts;
+        render();
+        showMessage(message, `${posts.length} ${posts.length === 1 ? "blog" : "blogs"}${DEMO_MODE ? " in the demo" : " found"}.`);
+      } catch (error) {
+        if (currentRequest === requestId) showMessage(message, `${error.message} Select Search to try again.`, true);
+      } finally {
+        if (currentRequest === requestId) { grid.setAttribute("aria-busy", "false"); submit.disabled = false; }
+      }
+    }
+    form.addEventListener("submit", event => { event.preventDefault(); load(); });
+    category.addEventListener("change", load);
+    $("#clear-blog-filters").addEventListener("click", () => { form.reset(); load(); });
     const dialog = $("#reader-dialog");
     document.addEventListener("click", event => {
       const read = event.target.closest("[data-read-post]");
@@ -297,14 +334,7 @@
       $("#reader-content").replaceChildren(...post.content.split(/\n\s*\n/).filter(Boolean).map(paragraph => element("p", "", paragraph)));
       openDialog(dialog);
     });
-    try {
-      published = [...await API.published(), ...samples];
-      render();
-    } catch (error) {
-      const message = element("div", "form-message is-error", `${error.message} The original sample stories are still available.`);
-      message.setAttribute("role", "status");
-      grid.before(message);
-    }
+    await load();
   }
 
   async function initBlogDetails() {
@@ -451,8 +481,10 @@
     $("#reset-demo").hidden = !DEMO_MODE;
     if (!DEMO_MODE) $(".workspace-notice p").textContent = "Your writing workspace. Published posts appear in the journal. Drafts stay in your dashboard.";
     async function refresh() {
+      list.setAttribute("aria-busy", "true");
       posts = DEMO_MODE ? DemoPosts.all() : await API.mine();
       render();
+      list.setAttribute("aria-busy", "false");
     }
     function render() {
       posts.sort((a, b) => b.date.localeCompare(a.date));
@@ -471,7 +503,7 @@
         status.append(element("span", `status-badge${post.status === "draft" ? " status-draft" : ""}`, post.status === "draft" ? "Draft" : "Published"));
         const actions = element("div", "row-actions");
         const edit = element("a", "row-action");
-        edit.href = `create-blog.html?edit=${encodeURIComponent(post.id)}${DEMO_MODE ? "&demo=1" : ""}`;
+        edit.href = DEMO_MODE ? `create-blog.html?edit=${encodeURIComponent(post.id)}&demo=1` : `edit-blog.html?id=${encodeURIComponent(post.id)}`;
         edit.setAttribute("aria-label", `Edit ${post.title}`);
         edit.append(icon("edit"), document.createTextNode("Edit"));
         const remove = element("button", "row-action row-action-delete");
@@ -497,10 +529,11 @@
       if (!button) return;
       const post = posts.find(post => post.id === button.dataset.deletePost);
       if (!post) return;
-      askConfirmation("Delete this story?", DEMO_MODE ? `“${post.title}” will be removed from this tab's demo posts. Reset demo posts restores the original samples.` : `“${post.title}” will be permanently removed from your saved posts.`, "Delete story", async () => {
+      askConfirmation("Are you sure you want to delete this blog?", DEMO_MODE ? `“${post.title}” will be removed from this tab's demo posts. Reset demo posts restores the original samples.` : `“${post.title}” will be permanently removed from your saved posts.`, "Delete story", async () => {
         if (DEMO_MODE) DemoPosts.remove(post.id);
         else await API.remove(post.id);
-        await refresh();
+        posts = DEMO_MODE ? DemoPosts.all() : posts.filter(item => item.id !== post.id);
+        render();
         showMessage(message, `“${post.title}” was deleted${DEMO_MODE ? " from the demo" : ""}.`);
         message.focus();
       });
@@ -517,16 +550,21 @@
       dialog.close();
       if (!action) return;
       list.inert = true;
+      showMessage(message, "Saving changes…");
       try { await action(); }
       catch (error) { showMessage(message, error.message, true); message.focus(); }
       finally { list.inert = false; }
     });
     dialog.addEventListener("close", () => { pendingAction = null; });
     render();
+    if (!DEMO_MODE) showMessage(message, "Loading your blogs…");
+    $("#dashboard-empty").hidden = true;
     try {
       await refresh();
+      message.hidden = true;
       if (DEMO_MODE && !DemoPosts.available()) showMessage(message, "Browser storage is unavailable. Demo changes may not carry between pages.", true);
     } catch (error) {
+      list.setAttribute("aria-busy", "false");
       showMessage(message, error.message, true);
       loginLink(message);
     }
@@ -541,32 +579,55 @@
     const category = $("#category");
     const image = $("#image-url");
     const content = $("#blog-content");
+    const status = $("#blog-status");
     const submit = $("#publish-button");
     const submitLabel = $("span", submit);
-    let editingId = new URLSearchParams(window.location.search).get("edit");
+    const editPage = document.body.dataset.page === "edit-blog";
+    let editingId = editPage ? params.get("id") : params.get("edit");
     let submitted = false;
     let busy = false;
+    fields.forEach(field => { field.disabled = true; });
+    const buttonLabel = () => editingId ? "Save changes" : (status.value === "draft" ? "Save draft" : "Publish blog");
     const updateWords = () => {
       const count = wordCount(content.value);
       $("#word-count").textContent = `${count} ${count === 1 ? "word" : "words"}`;
     };
     function validate(field) {
+      if (field === image && !field.value.trim()) return "";
       if (!field.value.trim()) {
-        return { "blog-title": "Give your blog a title.", category: "Choose a category.", "image-url": "Add a cover image URL or use a bundled image.", "blog-content": "Write some content for your blog." }[field.id];
+        return { "blog-title": "Give your blog a title.", category: "Choose a category.", "blog-content": "Write some content for your blog.", "blog-status": "Choose a status." }[field.id];
       }
       if (field === category && !CATEGORIES.includes(field.value)) return "Choose one of the listed categories.";
       if (field === image && !validImageUrl(field.value.trim())) return "Use a valid HTTP/HTTPS image URL or a bundled image path, such as images/code-workspace.jpg.";
       if (field === title && field.value.trim().length > 120) return "Keep your title within 120 characters.";
+      if (field === content && field.value.trim().length > 30000) return "Keep your content within 30000 characters.";
+      if (field === image && field.value.trim().length > 2048) return "Keep your cover URL within 2048 characters.";
+      if (field === status && !["published", "draft"].includes(field.value)) return "Choose Published or Draft.";
       return "";
+    }
+    if (editPage && !editingId) {
+      showMessage(message, "Choose a blog from your dashboard to edit it.", true);
+      return;
+    }
+    if (!DEMO_MODE && !API.session()) {
+      showMessage(message, "Please login to create or edit your blogs.");
+      loginLink(message);
+      return;
     }
     if (editingId) {
       let post;
-      try { post = DEMO_MODE ? DemoPosts.find(editingId) : await API.find(editingId); }
+      form.setAttribute("aria-busy", "true");
+      showMessage(message, "Loading your blog…");
+      try {
+        post = DEMO_MODE ? DemoPosts.find(editingId) : await API.find(editingId);
+        if (!post) throw new Error("Blog not found. Return to your dashboard to choose another blog.");
+        if (!DEMO_MODE && post.authorId !== API.session()?.user.id) throw new Error("You can only edit your own blogs.");
+      }
       catch (error) {
         showMessage(message, error.message, true);
         if (!API.session()) loginLink(message);
         return;
-      }
+      } finally { form.setAttribute("aria-busy", "false"); }
       if (post) {
         document.title = "Edit Blog — Codomax Journal";
         $("#editor-heading").textContent = "Make your story even better.";
@@ -575,43 +636,41 @@
         category.value = post.category;
         image.value = post.imageUrl;
         content.value = post.content;
-        submitLabel.textContent = post.status === "draft" ? "Publish blog" : "Save changes";
-      } else {
-        showMessage(message, "That post could not be found. You can create a new blog instead.", true);
-        editingId = null;
+        status.value = post.status;
+        message.hidden = true;
       }
     }
+    fields.forEach(field => { field.disabled = false; });
+    submitLabel.textContent = buttonLabel();
     updateWords();
     content.addEventListener("input", updateWords);
     bindValidation(fields, validate, message);
     fields.forEach(field => field.addEventListener("input", () => {
       if (submitted) {
         submit.disabled = false;
-        submitLabel.textContent = "Save changes";
         submitted = false;
       }
+      if (!busy) submitLabel.textContent = buttonLabel();
     }));
-    if (!DEMO_MODE && !API.session()) {
-      showMessage(message, "Please login before publishing a saved blog.");
-      loginLink(message);
-    }
     form.addEventListener("submit", async event => {
       event.preventDefault();
       if (submitted || busy) return;
       if (!validateForm(fields, validate)) {
-        showMessage(message, "Please complete the highlighted fields before publishing.", true);
+        showMessage(message, "Please complete the highlighted fields before saving.", true);
         return;
       }
       const body = content.value.trim();
       const changes = {
-        title: title.value.trim(), category: category.value, imageUrl: image.value.trim(),
+        title: title.value.trim(), category: category.value, imageUrl: image.value.trim() || LOCAL_IMAGES[0],
         imageAlt: `Cover image for ${title.value.trim()}`, content: body,
         description: body.replace(/\s+/g, " ").slice(0, 145) + (body.replace(/\s+/g, " ").length > 145 ? "…" : ""),
-        status: "published", readMinutes: readMinutes(body)
+        status: status.value, readMinutes: readMinutes(body)
       };
       const wasEditing = Boolean(editingId);
       busy = true;
       submit.disabled = true;
+      fields.forEach(field => { field.disabled = true; });
+      form.setAttribute("aria-busy", "true");
       submitLabel.textContent = "Saving…";
       try {
         if (DEMO_MODE) {
@@ -622,14 +681,15 @@
             saved = DemoPosts.create({ ...changes, id: editingId, date: today(), author: DEMO_WRITER });
           }
           if (!saved) throw new Error("Browser storage is unavailable, so this demo won't carry over to the dashboard.");
-          showMessage(message, wasEditing ? "Your changes were saved to the demo!" : "Blog published successfully in the demo! Changes stay in this browser tab only.");
+          showMessage(message, wasEditing ? "Your changes were saved to the demo!" : "Blog saved successfully in the demo! Changes stay in this browser tab only.");
         } else {
           const input = { ...changes, author: API.session()?.user.name };
           const result = editingId ? await API.update(editingId, input) : await API.create(input);
           editingId = result.blog.id;
           showMessage(message, result.message);
         }
-        try { history.replaceState(null, "", `create-blog.html?edit=${encodeURIComponent(editingId)}${DEMO_MODE ? "&demo=1" : ""}`); } catch { /* Local files may restrict history updates. */ }
+        const savedUrl = DEMO_MODE ? `create-blog.html?edit=${encodeURIComponent(editingId)}&demo=1` : `edit-blog.html?id=${encodeURIComponent(editingId)}`;
+        try { history.replaceState(null, "", savedUrl); } catch { /* Local files may restrict history updates. */ }
         $("#blog-dashboard-link").hidden = false;
         submitted = true;
         submitLabel.textContent = "Saved";
@@ -637,10 +697,12 @@
         showMessage(message, error.message, true);
         applyApiErrors(form, error);
         if (!DEMO_MODE && !API.session()) loginLink(message);
-        submitLabel.textContent = wasEditing ? "Save changes" : "Publish blog";
+        submitLabel.textContent = buttonLabel();
       } finally {
         busy = false;
         submit.disabled = submitted;
+        fields.forEach(field => { field.disabled = false; });
+        form.setAttribute("aria-busy", "false");
         message.focus();
       }
     });

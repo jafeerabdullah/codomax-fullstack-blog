@@ -5,6 +5,7 @@ const controller = require("../controllers/blogController");
 const requireAuth = require("../middleware/auth");
 
 router.get("/", controller.listBlogs);
+router.get("/user", requireAuth, controller.listMyBlogs);
 router.get("/mine", requireAuth, controller.listMyBlogs);
 router.get("/:id", (req, res, next) => req.get("Authorization") ? requireAuth(req, res, next) : next(), controller.getBlog);
 router.post("/", requireAuth, controller.createBlog);

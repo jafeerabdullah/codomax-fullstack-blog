@@ -173,3 +173,99 @@ test("CORS permits configured frontend origins and does not grant access to othe
   const denied = await fetch(`${base}/api/blogs`, { headers: { Origin: "https://untrusted.example" } });
   assert.equal(denied.headers.get("access-control-allow-origin"), null);
 });
+
+test("Module 4 user endpoint requires login and returns only the owner's published posts and drafts", async () => {
+  assert.equal((await call("/api/blogs/user")).status, 401);
+  assert.equal((await call("/api/blogs/user", { bearer: "invalid" })).status, 401);
+  const jwt = require("jsonwebtoken");
+  const config = require("../config");
+  const userId = (await call("/api/auth/me", { bearer: token })).body.user.id;
+  const expired = jwt.sign({}, config.jwtSecret, { subject: userId, issuer: config.jwtIssuer, audience: config.jwtAudience, expiresIn: -1 });
+  const parts = token.split(".");
+  parts[1] = Buffer.from(JSON.stringify({ ...jwt.decode(token), sub: "forged-user" })).toString("base64url");
+  for (const bearer of [expired, parts.join(".")]) {
+    assert.equal((await call("/api/blogs/user", { bearer })).status, 401);
+    assert.equal((await call("/api/blogs", { method: "POST", bearer, body: blogInput })).status, 401);
+  }
+  const mine = await call("/api/blogs/user", { bearer: token });
+  assert.equal(mine.status, 200);
+  assert.deepEqual(mine.body, (await call("/api/blogs/mine", { bearer: token })).body);
+  assert.equal((await call("/api/blogs/user", { bearer: otherToken })).body.blogs.length, 0);
+});
+
+test("Module 4 update preserves omitted fields, validates changes, protects ownership and handles status transitions", async () => {
+  const created = await call("/api/blogs", { method: "POST", bearer: token, body: {
+    ...blogInput, imageUrl: undefined, image: "images/design-perspective.jpg", status: "draft"
+  } });
+  const id = created.body.blog.id;
+  assert.equal(created.status, 201);
+  assert.equal(created.body.blog.imageUrl, "images/design-perspective.jpg");
+  const before = created.body.blog;
+  assert.ok((await call("/api/blogs/user", { bearer: token })).body.blogs.some(blog => blog.id === id && blog.status === "draft"));
+  assert.equal((await call(`/api/blogs/${id}`, { method: "PUT", body: { title: "Other" }, bearer: otherToken })).status, 403);
+  for (const method of ["PUT", "DELETE"]) {
+    assert.equal((await call(`/api/blogs/${id}`, { method, body: method === "PUT" ? blogInput : undefined })).status, 401);
+    assert.equal((await call(`/api/blogs/${id}`, { method, bearer: "invalid", body: method === "PUT" ? blogInput : undefined })).status, 401);
+    assert.equal((await call("/api/blogs/not-a-uuid", { method, bearer: token, body: method === "PUT" ? blogInput : undefined })).status, 404);
+  }
+  const edited = await call(`/api/blogs/${id}`, { method: "PUT", bearer: token, body: {
+    title: "Updated draft", author_id: "forged", authorId: "forged", author: "Forged Name", author_name: "Forged Name"
+  } });
+  assert.equal(edited.status, 200);
+  for (const field of ["category", "content", "imageUrl", "status", "author", "authorId", "createdAt"]) assert.equal(edited.body.blog[field], before[field]);
+  for (const body of [{ title: " " }, { category: "Unknown" }, { content: "" }, { status: "private" }, { image: "javascript:alert(1)" }, null, []]) {
+    assert.equal((await call(`/api/blogs/${id}`, { method: "PUT", bearer: token, body })).status, 400);
+  }
+  assert.equal((await call(`/api/blogs/${id}`, { bearer: token })).body.blog.title, "Updated draft");
+  const published = await call(`/api/blogs/${id}`, { method: "PUT", bearer: token, body: { status: "published", image: "images/writing-routine.jpg" } });
+  assert.equal(published.body.blog.status, "published");
+  assert.equal(published.body.blog.imageUrl, "images/writing-routine.jpg");
+  assert.equal((await call(`/api/blogs/${id}`)).status, 200);
+  assert.equal((await call(`/api/blogs/${id}`, { method: "PUT", bearer: token, body: { status: "draft" } })).status, 200);
+  assert.equal((await call(`/api/blogs/${id}`)).status, 404);
+  assert.equal((await call(`/api/blogs/${id}`, { method: "DELETE", bearer: token })).body.message, "Blog deleted successfully");
+  assert.ok(!(await call("/api/blogs/user", { bearer: token })).body.blogs.some(blog => blog.id === id));
+});
+
+test("Module 4 search matches title or content, combines with category, treats punctuation literally and excludes drafts", async () => {
+  const samples = [
+    { title: "Learning Node.js", category: "Technology", content: "JavaScript servers" },
+    { title: "Server notes", category: "Web Development", content: "Learning NODE.js today" },
+    { title: "Private Node.js", category: "Technology", content: "Draft content", status: "draft" },
+    { title: 'Literal (node), "quotes", 100%_ * \\ path', category: "Design", content: "Literal symbols" }
+  ];
+  const ids = [];
+  try {
+    for (const sample of samples) {
+      const created = await call("/api/blogs", { method: "POST", bearer: token, body: { ...blogInput, ...sample } });
+      assert.equal(created.status, 201);
+      ids.push(created.body.blog.id);
+    }
+    const results = await call("/api/blogs?search=NoDe.js");
+    assert.equal(results.status, 200);
+    assert.deepEqual(results.body.blogs.map(blog => blog.id).sort(), ids.slice(0, 2).sort());
+    assert.deepEqual((await call("/api/blogs?search=node.js&category=Technology")).body.blogs.map(blog => blog.id), [ids[0]]);
+    assert.deepEqual((await call("/api/blogs?category=Design")).body.blogs.map(blog => blog.id), [ids[3]]);
+    for (const search of ['(node), "quotes"', '100%_', '*', '\\ path']) {
+      assert.deepEqual((await call(`/api/blogs?search=${encodeURIComponent(search)}`)).body.blogs.map(blog => blog.id), [ids[3]]);
+    }
+    for (const search of ["definitely-absent", "x),status.eq.draft,content.imatch.(x"]) {
+      assert.deepEqual((await call(`/api/blogs?search=${encodeURIComponent(search)}`)).body.blogs, []);
+    }
+    for (const query of ["category=Unknown", "search=one&search=two", "category=Design&category=Technology", `search=${"x".repeat(201)}`, "search=%00"]) {
+      assert.equal((await call(`/api/blogs?${query}`)).status, 400);
+    }
+  } finally {
+    for (const id of ids) await call(`/api/blogs/${id}`, { method: "DELETE", bearer: token });
+  }
+});
+
+test("Module 4 filtered results page through all matching database rows", async () => {
+  const originalCount = fixture.tables.blogs.length;
+  const template = fixture.tables.blogs[0];
+  const { randomUUID } = require("node:crypto");
+  fixture.tables.blogs.push(...Array.from({ length: 1002 }, (_, index) => ({ ...template, id: randomUUID(), title: `Searchable paged story ${index}`, category: "Technology" })));
+  try {
+    assert.equal((await call("/api/blogs?search=Searchable&category=Technology")).body.blogs.length, 1002);
+  } finally { fixture.tables.blogs.splice(originalCount); }
+});

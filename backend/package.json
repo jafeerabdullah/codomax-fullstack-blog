@@ -1,8 +1,8 @@
 {
   "name": "codomax-blog-backend",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "Codomax internship Module 3: Express REST API with Supabase PostgreSQL",
+  "description": "Codomax internship Module 4: authenticated blog CRUD, search and categories with Supabase PostgreSQL",
   "main": "server.js",
   "engines": {
     "node": ">=22"

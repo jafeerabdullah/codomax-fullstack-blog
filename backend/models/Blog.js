@@ -22,20 +22,28 @@ function storedFields(input) {
   return { title: input.title, category: input.category, content: input.content, image: input.imageUrl, status: input.status };
 }
 
-async function listBy(field, value) {
+async function listBy(field, value, { search, category } = {}) {
   const rows = [];
   // Supabase limits each response. Page through it to preserve the complete feed/dashboard.
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
-    const page = databaseResult(await supabase.from("blogs").select(columns).eq(field, value)
-      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + pageSize - 1));
+    let query = supabase.from("blogs").select(columns).eq(field, value);
+    if (category) query = query.eq("category", category);
+    if (search) {
+      // Escape regex syntax and quote PostgREST values: input is literal text,
+      // including commas, quotes and parentheses, and cannot add filter clauses.
+      const pattern = JSON.stringify(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      query = query.or(`title.imatch.${pattern},content.imatch.${pattern}`);
+    }
+    const page = databaseResult(await query.order("created_at", { ascending: false })
+      .order("id", { ascending: false }).range(offset, offset + pageSize - 1));
     rows.push(...page);
     if (page.length < pageSize) return rows.map(publicBlog);
   }
 }
 
 class Blog {
-  static async published() { return listBy("status", "published"); }
+  static async published(filters) { return listBy("status", "published", filters); }
   static async byAuthor(authorId) { return listBy("author_id", authorId); }
   static async findById(id) {
     if (!validId(id)) throw new HttpError(404, "Blog not found.");
