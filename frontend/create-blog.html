@@ -39,13 +39,16 @@
               <label for="category">Category <span class="required-indicator" aria-hidden="true">*</span></label><select id="category" name="category" required aria-describedby="category-error"><option value="">Choose a category</option><option value="Web Development">Web Development</option><option value="Design">Design</option><option value="Productivity">Productivity</option><option value="Technology">Technology</option><option value="Personal Growth">Personal Growth</option></select><span class="field-error" id="category-error"></span>
             </div>
             <div class="field">
-              <label for="image-url">Cover image URL <span class="required-indicator" aria-hidden="true">*</span></label><input id="image-url" name="imageUrl" type="text" inputmode="url" placeholder="https://example.com/your-image.jpg" maxlength="2048" required aria-describedby="image-url-help image-url-error"><span class="field-help" id="image-url-help">Use an HTTPS/HTTP image link or a bundled image, such as images/code-workspace.jpg.</span><span class="field-error" id="image-url-error"></span>
+              <label for="image-url">Cover image URL</label><input id="image-url" name="imageUrl" type="text" inputmode="url" placeholder="https://example.com/your-image.jpg" maxlength="2048" aria-describedby="image-url-help image-url-error"><span class="field-help" id="image-url-help">Use an HTTPS/HTTP image link or a bundled image, such as images/code-workspace.jpg. Leave blank to use the default cover.</span><span class="field-error" id="image-url-error"></span>
             </div>
             <div class="field">
               <div class="label-row">
                 <label for="blog-content">Blog content <span class="required-indicator" aria-hidden="true">*</span></label><span class="word-count" id="word-count">0 words</span>
               </div>
               <textarea id="blog-content" name="content" rows="12" placeholder="Every good story starts with a first sentence…" maxlength="30000" required aria-describedby="blog-content-help blog-content-error"></textarea><span class="field-help" id="blog-content-help">Write in plain text. Separate your paragraphs with a blank line.</span><span class="field-error" id="blog-content-error"></span>
+            </div>
+            <div class="field">
+              <label for="blog-status">Status</label><select id="blog-status" name="status" required aria-describedby="blog-status-help blog-status-error"><option value="published">Published</option><option value="draft">Draft</option></select><span class="field-help" id="blog-status-help">Published stories appear in the journal. Drafts are visible only to you.</span><span class="field-error" id="blog-status-error"></span>
             </div>
             <div class="form-message" id="blog-message" role="status" aria-live="polite" tabindex="-1" hidden>
             </div>

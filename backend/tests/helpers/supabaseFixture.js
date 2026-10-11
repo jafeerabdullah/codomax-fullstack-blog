@@ -18,6 +18,11 @@ module.exports = function createSupabaseFixture() {
     const table = url.pathname.split("/").pop();
     if (!tables[table]) return send(404, { code: "42P01", message: "Unknown fixture table" });
     const matches = row => [...url.searchParams].every(([column, value]) => {
+      if (column === "or") {
+        const filters = /^\(title\.imatch\.("(?:[^"\\]|\\.)*"),content\.imatch\.("(?:[^"\\]|\\.)*")\)$/.exec(value);
+        if (!filters) throw new Error("Unsupported fixture search filter");
+        return new RegExp(JSON.parse(filters[1]), "i").test(row.title) || new RegExp(JSON.parse(filters[2]), "i").test(row.content);
+      }
       if (value.startsWith("eq.")) return String(row[column]) === value.slice(3);
       if (value.startsWith("in.(")) return value.slice(4, -1).split(",").map(item => item.replace(/^"|"$/g, "")).includes(String(row[column]));
       return true;

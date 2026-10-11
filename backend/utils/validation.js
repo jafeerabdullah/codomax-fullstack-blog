@@ -43,13 +43,27 @@ function imageValid(value) {
     return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password;
   } catch { return false; }
 }
-function blogInput(body) {
+function blogFilters(query) {
+  const errors = {};
+  for (const name of ["search", "category"]) {
+    if (query[name] !== undefined && typeof query[name] !== "string") errors[name] = `Provide one ${name} value.`;
+  }
+  const search = text(query.search);
+  const category = text(query.category);
+  if (search.length > 200 || /[\u0000-\u001f\u007f]/.test(search)) errors.search = "Use a search term of at most 200 characters without control characters.";
+  if (category && !categories.includes(category)) errors.category = "Choose one of the supported categories.";
+  fail(errors);
+  return { search, category };
+}
+function blogInput(body, existing = {}) {
   bodyObject(body);
-  const title = text(body.title);
-  const category = text(body.category);
-  const content = text(body.content);
-  const imageUrl = body.imageUrl === undefined ? images[0] : text(body.imageUrl);
-  const status = body.status === undefined ? "published" : body.status;
+  const title = text(body.title === undefined ? existing.title : body.title);
+  const category = text(body.category === undefined ? existing.category : body.category);
+  const content = text(body.content === undefined ? existing.content : body.content);
+  // Accept the requested image field while preserving the Module 2/3 imageUrl contract.
+  const imageInput = body.imageUrl === undefined ? body.image : body.imageUrl;
+  const imageUrl = imageInput === undefined ? (existing.imageUrl || images[0]) : text(imageInput);
+  const status = body.status === undefined ? (existing.status || "published") : body.status;
   const errors = {};
   if (!title || title.length > 120) errors.title = "Enter a title between 1 and 120 characters.";
   if (!categories.includes(category)) errors.category = "Choose one of the supported categories.";
@@ -68,4 +82,4 @@ function blogInput(body) {
   };
 }
 
-module.exports = { registerInput, loginInput, blogInput };
+module.exports = { registerInput, loginInput, blogInput, blogFilters };

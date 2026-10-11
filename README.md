@@ -3,7 +3,7 @@
 **Author: Jafeer Abdullah**
 **Codomax Full Stack Web Development Internship**
 
-The Codomax Journal combines the completed **Module 1 — Frontend Development**, **Module 2 — Backend Development**, and **Module 3 — Database Integration**. The original HTML5, CSS3, and vanilla JavaScript design is preserved. The Express REST API supports registration, login, publishing, reading, editing, and deleting. Module 2 used temporary JSON persistence; Module 3 uses Supabase PostgreSQL.
+The Codomax Journal combines **Module 1 — Frontend Development**, **Module 2 — Backend Development**, **Module 3 — Database Integration**, and **Module 4 — CRUD Operations**. The original HTML5, CSS3, and vanilla JavaScript design is preserved. The Express REST API supports registration, login, publishing, reading, editing, deleting, searching, and category filtering. Module 2 used temporary JSON persistence; Modules 3 and 4 use Supabase PostgreSQL.
 
 The architecture remains **Frontend → Node.js + Express.js → Supabase PostgreSQL**. The frontend calls Express APIs; database credentials stay in the backend. This project does not use React, Firebase, or Supabase Auth.
 
@@ -12,18 +12,21 @@ The architecture remains **Frontend → Node.js + Express.js → Supabase Postgr
 - `module-1-frontend` contains the frontend in the root-level `frontend/` folder.
 - `module-2-backend` contains the backend in the root-level `backend/` folder.
 - `module-3-database` extends both modules with Supabase storage and blog details.
-- `main` combines the reviewed modules. Module 3 is developed and tested on its own branch and must be reviewed through a Pull Request before merging.
+- `module-4-crud` extends the existing application with complete blog management, an edit page, search, and category filtering.
+- `main` combines the reviewed modules. Module 4 must be reviewed through a manual Pull Request before merging.
 
-The folder structure and installation steps below describe the combined `main` branch.
+The folder structure and installation steps below describe this Module 4 branch.
 
 ## Features
 
-- Original responsive Home, Login, Register, Dashboard, and Create Blog pages, plus the Module 3 Blog Details page.
+- Original responsive Home, Login, Register, Dashboard, and Create Blog pages, plus Blog Details and Edit Blog pages.
 - Original blue/white theme, local images, mobile menu, article reader, accessible forms, keyboard focus, and reduced motion support.
 - Frontend validation, server validation, and readable API success/error messages.
 - Registration with normalized email addresses, duplicate detection, and bcrypt password hashes.
 - Login with a signed JWT and safe user information; passwords are never returned or stored by the frontend.
 - Authenticated creation, editing, and deletion with server ownership checks.
+- Save private drafts, publish them, or return published posts to draft status.
+- Search published blog titles/content and combine results with category filtering.
 - Personal dashboard statistics; published API posts also appear on Home.
 - Original browser-only sample workspace with edit/delete/reset interactions.
 - Supabase PostgreSQL persistence with unique email constraints and automatic timestamps; the original atomic JSON utility remains in Module 2 history.
@@ -53,6 +56,8 @@ codomax-fullstack-blog/
 │   ├── register.html
 │   ├── dashboard.html
 │   ├── create-blog.html
+│   ├── edit-blog.html
+│   ├── blog-details.html
 │   ├── css/style.css
 │   ├── js/
 │   │   ├── api.js
@@ -132,7 +137,7 @@ For an offline cover image, use `images/code-workspace.jpg`, `images/design-pers
 
 The original sample workspace remains at **http://localhost:5000/frontend/dashboard.html?demo=1**. A logged-out dashboard also opens this sample workspace. Demo editor links explicitly carry `demo=1`.
 
-Demo editing, publishing, deleting, and **Reset demo posts** use the original tab's sessionStorage. They never modify backend posts/accounts, and the interface labels this mode clearly. While logged in, open the regular dashboard to manage real saved posts. The original sample stories remain on Home alongside API posts.
+Demo editing, publishing, deleting, and **Reset demo posts** use the original tab's sessionStorage. They never modify backend posts/accounts, and the interface labels this mode clearly. While logged in, open the regular dashboard to manage real saved posts. The regular Home feed uses API posts only. Open Home with `?demo=1` to read the preserved sample stories.
 
 ## Environment settings
 
@@ -143,6 +148,8 @@ Demo editing, publishing, deleting, and **Reset demo posts** use the original ta
 | JWT_EXPIRES_IN | Token lifetime; defaults to 1h |
 | CORS_ORIGINS | Comma separated browser origin allowlist |
 | DATA_DIR | Optional storage directory override, used by isolated tests |
+| SUPABASE_URL | Your Supabase project's URL; backend only |
+| SUPABASE_SERVICE_ROLE_KEY | Backend database access key; never share or place it in frontend files |
 
 The CORS allowlist includes localhost and 127.0.0.1 on ports 5000 and 5500. A VS Code Live Server preview on port 5500 can call the API on 5000. Use the Express-served frontend for the simplest setup; file:// is not configured as an API origin.
 
@@ -160,8 +167,9 @@ Authorization: Bearer YOUR_LOGIN_TOKEN
 | POST | /api/auth/register | Public | Create account |
 | POST | /api/auth/login | Public | JWT and safe user information |
 | GET | /api/auth/me | JWT | Current user |
-| GET | /api/blogs | Public | Published API posts |
-| GET | /api/blogs/mine | JWT | Own published posts and drafts |
+| GET | /api/blogs | Public | Published posts, newest first; optional search/category filters |
+| GET | /api/blogs/user | JWT | Own published posts and drafts |
+| GET | /api/blogs/mine | JWT | Preserved alias for /api/blogs/user |
 | GET | /api/blogs/:id | Public for published; owner JWT for drafts | Read one post or load own post for editing |
 | POST | /api/blogs | JWT | Create post |
 | PUT | /api/blogs/:id | Owner JWT | Update post |
@@ -233,7 +241,7 @@ The frontend stores only the JWT and safe user information in the current tab's 
 
 The full blog also includes category, content, cover image, description, date, reading time, status, and timestamps. Updates return 200 with `Blog updated successfully` and the updated blog.
 
-Title, category, and content are required. Categories match the frontend dropdown. API callers can omit imageUrl to use the bundled default. Status defaults to published; `draft` creates a private draft. The frontend Publish button publishes a draft or new post.
+Title, category, and content are required on creation. Categories match the frontend dropdown. API callers can omit imageUrl to use the bundled default, or send its alias `image`. Status defaults to published; `draft` creates a private draft. Both editor pages have a status dropdown. Updates preserve omitted fields, including draft status and cover image; provided fields are validated.
 
 The documented author field is accepted, but the server derives the actual author and ownership from the authenticated account. A submitted name/ID cannot grant access to another user's posts.
 
@@ -261,9 +269,9 @@ From backend/:
 npm test
 ```
 
-Eleven API test groups cover server responses, validation, hashing, email normalization, concurrent duplicate rejection, JWT, ownership, private drafts, concurrent writes, persistence across restarting the HTTP server, public details, pagination, safe database errors, and CORS. Tests use the real Supabase JavaScript SDK against an isolated local PostgREST HTTP fixture and ephemeral ports. They never use your live Supabase credentials or change the historical JSON files. Live database verification is a separate command described below.
+Fifteen API test groups cover server responses, validation, hashing, email normalization, concurrent duplicate rejection, JWT, ownership, private drafts, concurrent writes, persistence across restarting the HTTP server, public details, pagination, safe database errors, CORS, the user endpoint, partial updates, literal search, combined filters, and filtered pagination. Tests use the real Supabase JavaScript SDK against an isolated local PostgREST HTTP fixture and ephemeral ports. They never use your live Supabase credentials or change the historical JSON files. Live database verification is a separate command described below.
 
-Browser integration checks cover the real register → login → create → edit → read → delete flow, original demo interactions, and responsive layouts from 320px to 1920px. The original CSS file is preserved byte for byte. Browser/Postman QA data is isolated outside the project.
+Browser verification covers register → login → create → edit → read → delete, draft status, search/filter controls, delete cancellation, original demo interactions, and responsive layouts from 320px to 1920px. The original CSS rules are retained, with a small addition for the search controls. Browser checks using the local fixture verify the UI/API flow; they do not establish live Supabase connectivity.
 
 The nodemon configuration watches only source directories and ignores data writes. A Chokidar 4 override avoids the older watcher's vulnerable brace-pattern dependency; its startup and automatic restart are verified.
 
@@ -281,6 +289,14 @@ The original generated laptop, fictional architecture, and writing-desk covers r
 
 Supabase hosts the PostgreSQL database. Only the Express backend uses `@supabase/supabase-js`; the existing HTML pages continue using `frontend/js/api.js` and the existing REST URLs. Registration still hashes passwords with bcrypt (cost 12), and login still signs the same JWT with its issuer, audience, and expiry checks. Supabase Auth is not used.
 
+### Database setup
+
+1. Run `backend/database/module-3.sql` in your Supabase SQL editor if the existing users/blogs schema has not been created. Module 4 uses the same schema and needs no migration.
+2. Run `npm run setup-env` from `backend/` to create the ignored local `.env` and random JWT secret.
+3. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `backend/.env` locally. `.env.example` lists the settings without real credentials.
+4. Start Express with `npm run dev`. Keep database credentials in the backend; the browser calls only Express.
+
+The SQL enables row level security and revokes direct table access from anonymous/authenticated Supabase clients. The backend service role performs database operations; Express JWT and ownership checks enforce application access. Never commit the local `.env`.
 
 ### Module 3 endpoints and API testing
 
@@ -310,7 +326,7 @@ npm run test:supabase
 npm run dev
 ```
 
-On PowerShell, use `npm.cmd` if script execution policy blocks `npm`. No frontend install or build is needed. Open **http://localhost:5000/frontend/** and select **Blogs**, which points to the existing Home `#blogs` section. Database posts appear alongside the preserved Module 1 samples. Database **Read more** links open `blog-details.html?id=BLOG_ID`, showing title, cover, category, author, publication date, and full plain-text content. Sample posts retain their original article dialog and demo behavior.
+On PowerShell, use `npm.cmd` if script execution policy blocks `npm`. No frontend install or build is needed. Open **http://localhost:5000/frontend/** and select **Blogs**, which points to the existing Home `#blogs` section. The Module 4 journal feed shows database posts. Database **Read more** links open `blog-details.html?id=BLOG_ID`, showing title, cover, category, author, publication date, and full plain-text content. The original samples remain at `index.html?demo=1`, with their article dialog and demo behavior.
 
 If the default npm registry returns HTTP 403 in this environment, `npm.cmd ci --registry=https://registry.npmmirror.com` is the tested installation fallback. The committed lockfile retains the normal npm registry URLs and package integrity hashes; no global registry setting is changed.
 
@@ -318,7 +334,7 @@ If the default npm registry returns HTTP 403 in this environment, `npm.cmd ci --
 
 `npm test` runs isolated API checks through a local PostgREST fixture. It does **not** establish a live Supabase connection or verify your project's database setup.
 
-`npm run test:supabase` starts Express on an ephemeral port and verifies live registration, email uniqueness, stored bcrypt hashes, login, JWT, blog creation, database field mappings, ordering, public details, draft privacy, author ownership, timestamp updates, persistence after restarting the HTTP server, and deletion. It creates uniquely named test accounts/posts and removes only this run's records in a `finally` cleanup. A failure exits nonzero. No real keys or tokens are printed.
+`npm run test:supabase` starts Express on an ephemeral port and verifies live registration, email uniqueness, stored bcrypt hashes, login, JWT, blog creation, database field mappings, ordering, public details, literal search, category filtering, draft privacy, draft-preserving updates, the user endpoint, author ownership, timestamp updates, persistence after restarting the HTTP server, and deletion. It creates uniquely named test accounts/posts and removes only this run's records in a `finally` cleanup. A failure exits nonzero. No real keys or tokens are printed.
 
 After live verification, use the browser to register → login → create → open Blogs → Read more → edit → delete. Check that the original demo at `dashboard.html?demo=1` still works, and inspect the browser console. Missing IDs, unpublished blogs, and connection failures display readable details-page messages. Blog HTML is rendered as text.
 
@@ -333,3 +349,76 @@ git push -u origin module-3-database
 ```
 
 Do not commit Module 3 on `main` or merge automatically. Manually create the Pull Request **module-3-database → main** after pushing.
+
+## Module 4 — CRUD Operations
+
+Module 4 extends the existing MVC application on `module-4-crud`. The flow stays **HTML/JavaScript frontend → Express REST API → Supabase PostgreSQL → blogs table**. It reuses the Supabase connection, users/blogs tables, bcrypt login, JWT middleware, and existing design.
+
+### Features
+
+- Create blogs as an authenticated writer, with required title, category, and content.
+- View published blogs newest first and open their complete details.
+- Manage **My Blogs** in the dashboard, including title, category, date, status, Edit, and Delete.
+- Update your own blog at `frontend/edit-blog.html?id=BLOG_ID`, with existing fields prefilled.
+- Save private drafts, publish them, or move published blogs back to draft.
+- Delete your own blog only after the confirmation **“Are you sure you want to delete this blog?”**. Cancel leaves the blog unchanged.
+- Search published titles/content, ignoring case and treating punctuation as literal text.
+- Filter by Technology, Web Development, Design, Productivity, or Personal Growth; combine category and search.
+- Loading, empty, success, and error states across the feed, dashboard, and editors.
+
+### Module 4 API documentation
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| POST | /api/blogs | JWT required; create a blog. Returns 201 with `{ "message": "Blog created successfully", "blog": {...} }`. |
+| GET | /api/blogs | Public; return published blogs newest first, with author information. |
+| GET | /api/blogs?search=node | Match title or content. Search is limited to 200 characters. |
+| GET | /api/blogs?category=Technology | Match the selected category. |
+| GET | /api/blogs?search=node&category=Technology | Apply both filters. URL-encode query values, such as `Web%20Development`. |
+| GET | /api/blogs/user | JWT required; return only your published blogs and private drafts. `/mine` remains compatible. |
+| GET | /api/blogs/:id | Complete published details, or an owner's draft with JWT. Missing/invalid IDs and inaccessible drafts return 404. |
+| PUT | /api/blogs/:id | Owner JWT required; update title, category, content, image/imageUrl, or status. Returns 200 with `Blog updated successfully` and the updated blog. |
+| DELETE | /api/blogs/:id | Owner JWT required; delete the blog. Returns 200 with `{ "message": "Blog deleted successfully" }`. |
+
+Feed/user responses retain the existing Modules 2/3 envelope `{ "blogs": [...] }`; single details use `{ "blog": {...} }`. Each blog includes `id`, `title`, `category`, `content`, `imageUrl`, `authorId`, `author`, `status`, `createdAt`, and `updatedAt`, plus the existing card display fields. This preserves existing clients while adding Module 4 endpoints.
+
+Database storage remains `title`, `category`, `content`, `image`, `author_id`, `author_name`, and `status`, with automatic timestamps. The backend maps those fields to the existing frontend contract. Only the authenticated user's identity sets author/ownership; submitted author IDs/names cannot transfer a blog. Supabase service credentials remain backend-only. Blog content renders as plain text.
+
+The create/update JSON example above still works. A partial update can also preserve a draft's other fields:
+
+```http
+PUT /api/blogs/BLOG_UUID
+Authorization: Bearer YOUR_LOGIN_TOKEN
+Content-Type: application/json
+
+{ "title": "My revised title" }
+```
+
+Missing/invalid/expired JWTs return 401. Another user's update/delete returns 403. Invalid fields or filters return 400. Missing blogs return 404. The dashboard uses `/api/blogs/user`, the real journal feed fetches database posts, and the legacy `create-blog.html?edit=ID` editor links continue to work. The original Module 1 sample workspace and reader remain accessible with `?demo=1`.
+
+### Test and complete Module 4
+
+From this existing checkout:
+
+```sh
+git switch module-4-crud
+cd backend
+npm ci
+npm test
+# Requires a locally configured backend/.env and the existing Supabase schema:
+npm run test:supabase
+npm run dev
+```
+
+Open `http://localhost:5000/frontend/`. Register/login, create a post, open **My Blogs**, edit all fields, save a draft, publish it, search by title/content, and change categories. Cancel a deletion first, then confirm it. Check with a second account that another user's post cannot be edited/deleted. Verify the original demo at `dashboard.html?demo=1`. The API tests exercise these server behaviors without touching live records; `test:supabase` verifies actual database persistence and removes only its own uniquely identified test records.
+
+After verification, from the project root:
+
+```sh
+git status
+git add .
+git commit -m "Complete Module 4 - Blog CRUD Operations"
+git push -u origin module-4-crud
+```
+
+Stop after pushing. Create the Pull Request **module-4-crud → main** manually; do not merge automatically.

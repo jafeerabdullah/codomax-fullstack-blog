@@ -10,7 +10,7 @@ async function verify() {
   const supabase = require("../config/supabase");
   const app = require("../server");
   const runId = randomUUID();
-  const emails = [`module3-${runId}@example.com`, `module3-other-${runId}@example.com`];
+  const emails = [`module4-${runId}@example.com`, `module4-other-${runId}@example.com`];
   const password = randomBytes(24).toString("hex");
   let server;
   const open = async () => {
@@ -30,10 +30,10 @@ async function verify() {
     assert.equal(response.status, status, `Unexpected HTTP status for ${method} ${route}`);
     return response.json();
   }
-  const blogInput = { title: `Module 3 verification ${runId}`, category: "Technology", content: "Live Supabase verification.\n\nThis post belongs to this test run only.", imageUrl: "images/code-workspace.jpg", status: "published" };
+  const blogInput = { title: `Module 4 verification ${runId}`, category: "Technology", content: `Live Supabase verification ${runId}.\n\nLiteral (node), "quotes", 100%_ * \\ path.`, imageUrl: "images/code-workspace.jpg", status: "published" };
   try {
     for (const email of emails) {
-      const result = await call("/api/auth/register", { method: "POST", body: { name: "Module 3 Test Writer", email: email.toUpperCase(), password }, status: 201 });
+      const result = await call("/api/auth/register", { method: "POST", body: { name: "Module 4 Test Writer", email: email.toUpperCase(), password }, status: 201 });
       assert.ok(!("password" in result));
     }
     await call("/api/auth/register", { method: "POST", body: { name: "Duplicate", email: emails[0], password }, status: 409 });
@@ -60,11 +60,21 @@ async function verify() {
     assert.ok(feed.some(blog => blog.id === id));
     const times = feed.map(blog => Date.parse(blog.createdAt));
     assert.deepEqual(times, [...times].sort((a, b) => b - a));
+    for (const search of [runId, '(node), "quotes"', '100%_', '*', '\\ path']) {
+      assert.ok((await call(`/api/blogs?search=${encodeURIComponent(search)}&category=Technology`)).blogs.some(blog => blog.id === id), "Search must match title/content literally");
+    }
+    assert.ok(!(await call(`/api/blogs?search=${runId}&category=Design`)).blogs.some(blog => blog.id === id));
+    await call("/api/blogs?category=Unsupported", { status: 400 });
     const draft = await call("/api/blogs", { method: "POST", token, body: { ...blogInput, status: "draft" }, status: 201 });
     assert.ok(!(await call("/api/blogs")).blogs.some(blog => blog.id === draft.blog.id));
     await call(`/api/blogs/${draft.blog.id}`, { status: 404 });
     await call(`/api/blogs/${draft.blog.id}`, { token: other.token, status: 404 });
     await call(`/api/blogs/${draft.blog.id}`, { token });
+    const editedDraft = await call(`/api/blogs/${draft.blog.id}`, { method: "PUT", token, body: { title: `Edited draft ${runId}` } });
+    assert.equal(editedDraft.blog.status, "draft", "Editing a draft must not publish it implicitly");
+    assert.equal(editedDraft.blog.imageUrl, blogInput.imageUrl);
+    assert.ok((await call("/api/blogs/user", { token })).blogs.some(blog => blog.id === draft.blog.id));
+    await call("/api/blogs/user", { status: 401 });
     await call(`/api/blogs/${id}`, { method: "PUT", token, body: { ...blogInput, title: `${blogInput.title} edited` } });
     const updated = await supabase.from("blogs").select("updated_at").eq("id", id).single();
     assert.ok(!updated.error);
@@ -75,6 +85,7 @@ async function verify() {
     await call(`/api/blogs/${id}`, { method: "DELETE", token });
     await call(`/api/blogs/${id}`, { status: 404 });
     assert.equal((await fetch(`${base}/frontend/blog-details.html`)).status, 200);
+    assert.equal((await fetch(`${base}/frontend/edit-blog.html`)).status, 200);
   } finally {
     await new Promise(resolve => server.close(resolve));
     // Exact unique emails for this run; no existing accounts or posts are touched.
@@ -84,11 +95,11 @@ async function verify() {
     if (ids.length) {
       const blogs = await supabase.from("blogs").delete().in("author_id", ids);
       const accounts = blogs.error ? blogs : await supabase.from("users").delete().in("id", ids);
-      if (accounts.error) throw new Error("Verification cleanup failed. Remove only this run's module3- test accounts manually.");
+      if (accounts.error) throw new Error("Verification cleanup failed. Remove only this run's module4- test accounts manually.");
     }
     console.log("Verification records cleaned up.");
   }
-  console.log("Live Supabase verification passed: registration, bcrypt, login, JWT, blog storage, feed ordering, details, draft privacy, ownership, updates, persistence and deletion.");
+  console.log("Live Supabase verification passed: registration, bcrypt, login, JWT, blog storage, feed ordering, details, search, category filtering, draft privacy, ownership, updates, persistence and deletion.");
 }
 
 verify().catch(() => {
