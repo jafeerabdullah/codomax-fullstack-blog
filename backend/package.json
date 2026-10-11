@@ -1,15 +1,16 @@
 {
   "name": "codomax-blog-backend",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "Codomax internship Module 5: secure JWT sessions, user profiles and protected dashboards with Supabase PostgreSQL",
+  "description": "Codomax Journal: full stack blog with a professional responsive UI, secure JWT sessions, Supabase and Vercel deployment preparation",
   "main": "server.js",
   "engines": {
-    "node": ">=22"
+    "node": "24.x"
   },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "build": "node scripts/build-static.js",
     "test": "node --test tests/*.test.js",
     "setup-env": "node scripts/setup-env.js",
     "test:supabase": "node scripts/verify-supabase.js"

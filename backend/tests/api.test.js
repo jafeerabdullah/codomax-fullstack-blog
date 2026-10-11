@@ -8,6 +8,7 @@ const createSupabaseFixture = require("./helpers/supabaseFixture");
 
 const fixture = createSupabaseFixture();
 process.env.JWT_SECRET = randomBytes(48).toString("hex");
+process.env.CORS_ORIGINS = "http://localhost:5000,http://localhost:5500,https://journal.example";
 let app, server, base, token, otherToken, blogId;
 const password = "Testing-password-123";
 const blogInput = { title: "A working backend", category: "Web Development", content: "This story is saved through the Supabase client.", author: "Jafeer Abdullah", imageUrl: "images/code-workspace.jpg" };
@@ -39,7 +40,8 @@ after(async () => {
 });
 
 test("server root, static frontend, missing routes, invalid JSON and body limits", async () => {
-  assert.equal(await (await fetch(base)).text(), "Blog API Server Running");
+  assert.ok((await (await fetch(base)).text()).includes("Codomax Journal"));
+  assert.deepEqual((await call("/health")).body, { status: "ok" });
   assert.equal((await fetch(`${base}/frontend/index.html`)).status, 200);
   assert.equal((await call("/api/missing")).status, 404);
   assert.equal((await call("/api/auth/register", { method: "POST", raw: "{" })).status, 400);
@@ -363,4 +365,29 @@ test("Module 5 profile statistics count rows beyond the database response limit"
     assert.equal(profile.publishedBlogs, before.publishedBlogs + 501);
     assert.equal(profile.draftBlogs, before.draftBlogs + 501);
   } finally { fixture.tables.blogs.splice(originalCount); }
+});
+
+test("production and legacy frontend paths serve assets while CORS and security headers stay controlled", async () => {
+  for (const prefix of ["", "/frontend"]) {
+    for (const file of ["index.html", "blogs.html", "login.html", "register.html", "dashboard.html", "create-blog.html", "edit-blog.html", "blog-details.html", "css/style.css", "js/api.js", "images/cover-fallback.svg"]) {
+      const response = await fetch(`${base}${prefix}/${file}`);
+      assert.equal(response.status, 200, `${prefix}/${file}`);
+      assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+      assert.ok(!response.headers.has("x-powered-by"));
+      assert.ok(response.headers.get("content-security-policy").includes("frame-ancestors 'none'"));
+      assert.ok(!(await response.text()).includes(fixture.key));
+    }
+  }
+  for (const route of ["/.env", "/backend/.env", "/config.js", "/package.json", "/frontend/.env"]) assert.equal((await fetch(base + route)).status, 404);
+  const health = await fetch(base + "/health");
+  assert.deepEqual(await health.json(), { status: "ok" });
+  assert.equal(health.headers.get("cache-control"), "no-store");
+  for (const origin of ["http://localhost:5000", "https://journal.example"]) {
+    const response = await fetch(base + "/api/blogs", { method: "OPTIONS", headers: { Origin: origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,content-type" } });
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-allow-origin"), origin);
+    assert.ok(response.headers.get("access-control-allow-headers").includes("Authorization"));
+  }
+  const denied = await fetch(base + "/api/blogs", { headers: { Origin: "https://unlisted.example" } });
+  assert.equal(denied.headers.get("access-control-allow-origin"), null);
 });

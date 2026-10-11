@@ -22,7 +22,7 @@
         <button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
         <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
           <a href="index.html" aria-current="page">Home</a>
-          <a href="index.html#blogs">Blogs</a>
+          <a href="blogs.html">Blogs</a>
           <span class="nav-divider" aria-hidden="true"></span>
           <a href="login.html">Login</a>
           <a class="button button-primary button-small" href="register.html">Register</a>
@@ -32,27 +32,27 @@
     <main id="main-content">
       <section class="hero container" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <span class="eyebrow"><span class="eyebrow-line"></span>A LITTLE CURIOSITY GOES A LONG WAY</span>
-          <h1 id="hero-title">A space for ideas.<br>A place to <span class="accent-text">grow.</span></h1>
-          <p>Welcome to the Codomax Journal. Stories about code, design, and the everyday moments that make us better creators.</p>
+          <span class="eyebrow"><span class="eyebrow-line"></span>THE JOURNAL FOR CURIOUS MINDS</span>
+          <h1 id="hero-title">Ideas worth<br><span class="accent-text">passing on.</span></h1>
+          <p>A fresh perspective can change your day. Discover thoughtful stories about code, design, and the art of creating — or share one of your own.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#blogs">Explore the blogs</a>
+            <a class="button button-primary" href="blogs.html">Explore the journal</a>
             <a class="button button-secondary" href="create-blog.html">Share your story</a>
           </div>
           <div class="hero-footnote">
-            <span class="little-spark" aria-hidden="true">✦</span> For curious minds. By curious minds.
+            <span class="little-spark" aria-hidden="true">✦</span> Code. Design. Everyday creativity.
           </div>
         </div>
-        <article class="featured-card">
-          <img src="images/code-workspace.jpg" width="1200" height="800" alt="A laptop and a carefully arranged workspace" fetchpriority="high">
-          <div class="featured-shade">
-          </div>
-          <span class="featured-label">THE EDITOR'S PICK</span>
+        <article class="featured-card" id="featured-story" aria-labelledby="featured-title">
+          <img id="featured-image" src="images/writing-routine.jpg" width="1200" height="800" alt="A notebook and coffee, ready for a new story" fetchpriority="high">
+          <div class="featured-shade"></div>
+          <span class="featured-label" id="featured-label">THE CODOMAX JOURNAL</span>
           <div class="featured-content">
-            <span class="featured-category">WEB DEVELOPMENT</span>
-            <h2>Start small.<br>Build something great.</h2>
+            <span class="featured-category" id="featured-category">A SPACE TO CREATE</span>
+            <h2 id="featured-title">Every great story<br>starts with an idea.</h2>
             <div class="featured-bottom">
-              <span>5 min read <span aria-hidden="true">·</span> Oct 5, 2026</span><button class="icon-button featured-read" type="button" data-read-post="post-1" aria-label="Read Start small. Build something great."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+              <span id="featured-meta">Make room for yours.</span>
+              <a class="icon-button featured-read" id="featured-read" href="register.html" aria-label="Start writing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
             </div>
           </div>
         </article>
@@ -61,9 +61,9 @@
         <div class="container">
           <div class="section-heading">
             <div>
-              <span class="eyebrow">FROM THE JOURNAL</span><h2 id="blogs-title">Fresh perspectives.</h2><p>A few good reads to spark your next idea.</p>
+              <span class="eyebrow">FROM THE JOURNAL</span><h2 id="blogs-title">Fresh from the journal.</h2><p>New ideas, honest experiences, and something to take with you.</p>
             </div>
-            <span class="section-caption"><span class="little-spark" aria-hidden="true">✦</span> Latest blog posts</span>
+            <a class="text-button section-caption" href="blogs.html">All stories <span aria-hidden="true">↗</span></a>
           </div>
           <form class="blog-controls" id="blog-filters" role="search" aria-label="Search blogs">
             <div class="field">
@@ -83,11 +83,11 @@
       <div class="container footer-main">
         <a class="brand footer-brand" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 7 3 16l8 9M21 7l8 9-8 9M18 6l-4 20"/></svg></span><span>codomax<span class="brand-dot">.</span></span></a><p>A home for ideas worth sharing.</p>
         <nav aria-label="Footer navigation">
-          <a href="index.html">Home</a><a href="index.html#blogs">Blogs</a><a href="dashboard.html">Dashboard</a><a href="register.html">Register</a>
+          <a href="index.html">Home</a><a href="blogs.html">Blogs</a><a href="dashboard.html">Dashboard</a><a href="register.html">Register</a>
         </nav>
       </div>
       <div class="container footer-bottom">
-        <span>© <span data-year>2026</span> Codomax Journal. All rights reserved.</span><span>Made with curiosity & a little code.</span>
+        <span>© <span data-year>2026</span> Codomax Journal. All rights reserved.</span><span>Independent ideas. Shared perspectives.</span>
       </div>
     </footer>
     <dialog class="reader-dialog" id="reader-dialog" aria-labelledby="reader-title">
@@ -105,7 +105,7 @@
       </div>
     </dialog>
     <noscript>
-      <p class="noscript-note">Enable JavaScript to open articles and use the demo forms. All page links still work.</p>
+      <p class="noscript-note">Enable JavaScript to load stories and use your writing workspace.</p>
     </noscript>
   </body>
 </html>

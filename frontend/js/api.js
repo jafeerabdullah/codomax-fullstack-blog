@@ -2,8 +2,7 @@
 "use strict";
 
 (() => {
-  const BASE_URL = window.location.port === "5000" && ["http:", "https:"].includes(window.location.protocol)
-    ? `${window.location.origin}/api` : "http://localhost:5000/api";
+  const BASE_URL = "/api";
   const SESSION_KEY = "codomax.module2.session";
   let expiryTimer;
   let sessionEnded = false;
@@ -85,9 +84,9 @@
           const active = session();
           if (!active || active.token === current.token) endSession();
         }
-        const error = new Error(data.message || "The request could not be completed.");
+        const error = new Error(data?.message || "The request could not be completed.");
         error.status = response.status;
-        error.fields = data.errors || {};
+        error.fields = data?.errors || {};
         throw error;
       }
       if (authenticated) {
@@ -100,7 +99,7 @@
       return data;
     } catch (error) {
       if (error.name === "AbortError") throw new Error("The server took too long to respond. Please try again.");
-      if (error instanceof TypeError) throw new Error("Cannot reach the backend. Start it with npm run dev and open http://localhost:5000/frontend/.");
+      if (error instanceof TypeError) throw new Error("We couldn't connect. Check your internet connection and try again.");
       throw error;
     } finally { clearTimeout(timeout); }
   }
