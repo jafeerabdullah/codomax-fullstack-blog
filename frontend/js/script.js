@@ -11,7 +11,7 @@
   const DEMO_INITIALS = "JA";
   const API = window.BlogAPI;
   const params = new URLSearchParams(window.location.search);
-  const DEMO_MODE = params.get("demo") === "1" || (document.body.dataset.page === "dashboard" && !API.session());
+  const DEMO_MODE = params.get("demo") === "1";
   const CATEGORIES = ["Web Development", "Design", "Productivity", "Technology", "Personal Growth"];
   const FALLBACK_IMAGE = "images/cover-fallback.svg";
   const LOCAL_IMAGES = ["images/code-workspace.jpg", "images/design-perspective.jpg", "images/writing-routine.jpg", FALLBACK_IMAGE];
@@ -192,7 +192,7 @@
     $$("[data-writer-initials]").forEach(node => { node.textContent = initials(name); });
     $$("[data-writer-role]").forEach(node => { node.textContent = DEMO_MODE ? "Demo writer" : "Writer"; });
     const heading = $("#dashboard-heading");
-    if (heading) heading.textContent = `Welcome back, ${name}.`;
+    if (heading) heading.textContent = `Welcome, ${name}.`;
     if (DEMO_MODE) {
       $$("a[href='create-blog.html'], a[href='dashboard.html']").forEach(link => { link.href += "?demo=1"; });
       const note = $(".editor-aside .demo-note p");
@@ -200,8 +200,9 @@
     }
     if (current) {
       const logout = element("button", "text-button", "Logout");
+      logout.id = "logout-button";
       logout.type = "button";
-      logout.addEventListener("click", () => { API.logout(); window.location.assign("index.html"); });
+      logout.addEventListener("click", () => { API.logout(); window.location.replace("login.html"); });
       $("#primary-nav").append(logout);
     }
   }
@@ -344,13 +345,14 @@
     const id = params.get("id");
     if (!id) { showMessage(message, "Choose a blog from the journal to read it.", true); return; }
     try {
-      const post = await API.details(id);
+      const post = DEMO_MODE ? DemoPosts.find(id) : await API.details(id);
+      if (!post) throw Object.assign(new Error("Blog not found."), { status: 404 });
       document.title = `${post.title} — Codomax Journal`;
       $("#blog-details-title").textContent = post.title;
       $("#blog-details-category").textContent = post.category;
       $("#blog-details-author").textContent = post.author;
       const time = $("#blog-details-date");
-      time.dateTime = post.createdAt;
+      time.dateTime = post.createdAt || post.date;
       time.textContent = formatDate(post.date);
       const image = $("#blog-details-image");
       delete image.dataset.fallbackApplied;
@@ -405,11 +407,15 @@
     function validate(field) {
       switch (field.id) {
         case "email": return emailError(field);
-        case "full-name": return field.value.trim() ? "" : "Enter your full name.";
+        case "full-name":
+          if (!field.value.trim()) return "Enter your full name.";
+          if (field.value.trim().length > 80) return "Keep your name within 80 characters.";
+          return /\p{L}/u.test(field.value) && !/[\u0000-\u001f\u007f]/.test(field.value) ? "" : "Use a name containing a letter, without control characters.";
         case "password":
           if (!field.value.trim()) return "Enter your password.";
           if (kind === "register" && field.value.length < 8) return "Use a password with at least 8 characters.";
           if (new TextEncoder().encode(field.value).length > 72) return "Password is too long. Use a shorter password.";
+          if (kind === "register" && (!/\p{Lu}/u.test(field.value) || !/\p{Ll}/u.test(field.value) || !/\p{N}/u.test(field.value))) return "Include an uppercase letter, a lowercase letter, and a number.";
           return "";
         case "confirm-password":
           if (!field.value) return "Confirm your password.";
@@ -422,6 +428,8 @@
       if (confirm.value) fieldError(confirm, validate(confirm));
     });
     const submit = $("[type='submit']", form);
+    if (kind === "login" && params.get("reason") === "session-expired") showMessage(message, "Your session expired. Please login again.");
+    else if (kind === "login" && params.has("next")) showMessage(message, "Please login to continue to your writing workspace.");
     let busy = false;
     form.addEventListener("submit", async event => {
       event.preventDefault();
@@ -433,13 +441,17 @@
       }
       busy = true;
       submit.disabled = true;
+      form.setAttribute("aria-busy", "true");
       const label = submit.textContent;
       submit.textContent = kind === "login" ? "Logging in…" : "Creating account…";
       try {
         const input = { email: $("#email", form).value.trim(), password: password.value };
         const result = kind === "login" ? await API.login(input) : await API.register({ ...input, name: $("#full-name", form).value.trim() });
-        showMessage(message, kind === "login" ? `${result.message}. Open your dashboard below.` : `${result.message}. You can now login using the link below.`);
-        if (kind === "login") $("#login-dashboard-link").hidden = false;
+        showMessage(message, kind === "login" ? `${result.message}. Open your workspace below.` : `${result.message}. You can now login using the link below.`);
+        if (kind === "login") {
+          $("#login-dashboard-link").href = API.loginDestination();
+          $("#login-dashboard-link").hidden = false;
+        }
         password.value = "";
         password.type = "password";
         if (confirm) { confirm.value = ""; confirm.type = "password"; }
@@ -454,6 +466,7 @@
       } finally {
         busy = false;
         submit.disabled = false;
+        form.setAttribute("aria-busy", "false");
         submit.textContent = label;
         message.focus();
       }
@@ -479,10 +492,20 @@
     let pendingAction = null;
     let posts = DEMO_MODE ? DemoPosts.all() : [];
     $("#reset-demo").hidden = !DEMO_MODE;
+    $("#user-profile").hidden = DEMO_MODE;
     if (!DEMO_MODE) $(".workspace-notice p").textContent = "Your writing workspace. Published posts appear in the journal. Drafts stay in your dashboard.";
     async function refresh() {
       list.setAttribute("aria-busy", "true");
-      posts = DEMO_MODE ? DemoPosts.all() : await API.mine();
+      if (DEMO_MODE) posts = DemoPosts.all();
+      else {
+        const [profile, blogs] = await Promise.all([API.profile(), API.mine()]);
+        posts = blogs;
+        $("#profile-name").textContent = profile.name;
+        $("#profile-email").textContent = profile.email;
+        $("#profile-created").textContent = new Date(profile.createdDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        $("#profile-created").dateTime = profile.createdDate;
+        $("#user-profile").setAttribute("aria-busy", "false");
+      }
       render();
       list.setAttribute("aria-busy", "false");
     }
@@ -511,7 +534,10 @@
         remove.dataset.deletePost = post.id;
         remove.setAttribute("aria-label", `Delete ${post.title}`);
         remove.append(icon("delete"), document.createTextNode("Delete"));
-        actions.append(edit, remove);
+        const view = element("a", "row-action", "View");
+        view.href = `blog-details.html?id=${encodeURIComponent(post.id)}${DEMO_MODE ? "&demo=1" : ""}`;
+        view.setAttribute("aria-label", `View ${post.title}`);
+        actions.append(edit, remove, view);
         row.append(title, element("span", "dashboard-category", post.category), date, status, actions);
         return row;
       }));
@@ -709,17 +735,40 @@
     submit.disabled = false;
   }
 
-  // defer ensures the HTML is ready before any initializer runs.
-  initNavigation();
-  initDialogs();
-  initIdentity();
-  initPasswordToggles();
-  $$("img").forEach(watchImage);
-  $$("[data-year]").forEach(node => { node.textContent = new Date().getFullYear(); });
-  initHome();
-  initBlogDetails();
-  initAccountForm("login");
-  initAccountForm("register");
-  initDashboard();
-  initEditor();
+  window.addEventListener("codomax:session-ended", () => {
+    if (API.requiresLogin()) $$("[data-auth-content]").forEach(node => { node.hidden = true; });
+    $("#logout-button")?.remove();
+  });
+  // Verify the server session before showing private content or loading user blogs.
+  async function initialize() {
+    initNavigation();
+    initDialogs();
+    initPasswordToggles();
+    $$("img").forEach(watchImage);
+    $$("[data-year]").forEach(node => { node.textContent = new Date().getFullYear(); });
+    if (API.requiresLogin()) {
+      if (!API.session()) { API.redirectToLogin(); return; }
+      try { await API.currentUser(); }
+      catch (error) {
+        if (error.status === 401) return;
+        const message = $("#auth-status");
+        showMessage(message, `Could not verify your session. ${error.message}`, true);
+        const retry = element("button", "text-button", "Try again");
+        retry.type = "button";
+        retry.addEventListener("click", () => window.location.reload());
+        message.append(document.createTextNode(" "), retry);
+        return;
+      }
+    }
+    $$("[data-auth-content]").forEach(node => { node.hidden = false; });
+    if ($("#auth-status")) $("#auth-status").hidden = true;
+    initIdentity();
+    initHome();
+    initBlogDetails();
+    initAccountForm("login");
+    initAccountForm("register");
+    initDashboard();
+    initEditor();
+  }
+  initialize();
 })();

@@ -45,6 +45,15 @@ async function listBy(field, value, { search, category } = {}) {
 class Blog {
   static async published(filters) { return listBy("status", "published", filters); }
   static async byAuthor(authorId) { return listBy("author_id", authorId); }
+  static async statistics(authorId) {
+    const results = await Promise.all([null, "published", "draft"].map(status => {
+      let query = supabase.from("blogs").select("id", { count: "exact", head: true }).eq("author_id", authorId);
+      if (status) query = query.eq("status", status);
+      return query;
+    }));
+    const [totalBlogs, publishedBlogs, draftBlogs] = results.map(result => { databaseResult(result); return result.count; });
+    return { totalBlogs, publishedBlogs, draftBlogs };
+  }
   static async findById(id) {
     if (!validId(id)) throw new HttpError(404, "Blog not found.");
     const row = databaseResult(await supabase.from("blogs").select(columns).eq("id", id).maybeSingle());

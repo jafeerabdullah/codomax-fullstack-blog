@@ -28,6 +28,7 @@ module.exports = function createSupabaseFixture() {
       return true;
     });
     let rows = tables[table].filter(matches);
+    if (req.headers.prefer?.includes("count=exact")) res.setHeader("Content-Range", `*/${rows.length}`);
     let body;
     if (["POST", "PATCH"].includes(req.method)) {
       let raw = "";

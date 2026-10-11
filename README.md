@@ -3,7 +3,7 @@
 **Author: Jafeer Abdullah**
 **Codomax Full Stack Web Development Internship**
 
-The Codomax Journal combines **Module 1 — Frontend Development**, **Module 2 — Backend Development**, **Module 3 — Database Integration**, and **Module 4 — CRUD Operations**. The original HTML5, CSS3, and vanilla JavaScript design is preserved. The Express REST API supports registration, login, publishing, reading, editing, deleting, searching, and category filtering. Module 2 used temporary JSON persistence; Modules 3 and 4 use Supabase PostgreSQL.
+The Codomax Journal combines **Module 1 — Frontend Development**, **Module 2 — Backend Development**, **Module 3 — Database Integration**, **Module 4 — CRUD Operations**, and **Module 5 — Authentication & Dashboard**. The original HTML5, CSS3, and vanilla JavaScript design is preserved. The Express REST API supports registration, login, profiles, publishing, reading, editing, deleting, searching, and category filtering. Module 2 used temporary JSON persistence; Modules 3–5 use Supabase PostgreSQL.
 
 The architecture remains **Frontend → Node.js + Express.js → Supabase PostgreSQL**. The frontend calls Express APIs; database credentials stay in the backend. This project does not use React, Firebase, or Supabase Auth.
 
@@ -13,9 +13,10 @@ The architecture remains **Frontend → Node.js + Express.js → Supabase Postgr
 - `module-2-backend` contains the backend in the root-level `backend/` folder.
 - `module-3-database` extends both modules with Supabase storage and blog details.
 - `module-4-crud` extends the existing application with complete blog management, an edit page, search, and category filtering.
-- `main` combines the reviewed modules. Module 4 must be reviewed through a manual Pull Request before merging.
+- `module-5-authentication` extends the application with registration validation, protected pages, session management, and user profiles.
+- `main` combines the reviewed modules. Module 5 must be reviewed through a manual Pull Request before merging.
 
-The folder structure and installation steps below describe this Module 4 branch.
+The folder structure and installation steps below describe this Module 5 branch.
 
 ## Features
 
@@ -28,6 +29,7 @@ The folder structure and installation steps below describe this Module 4 branch.
 - Save private drafts, publish them, or return published posts to draft status.
 - Search published blog titles/content and combine results with category filtering.
 - Personal dashboard statistics; published API posts also appear on Home.
+- Protected dashboard/editors, account details, View actions for published posts/private drafts, and logout to Login.
 - Original browser-only sample workspace with edit/delete/reset interactions.
 - Supabase PostgreSQL persistence with unique email constraints and automatic timestamps; the original atomic JSON utility remains in Module 2 history.
 - Existing MVC structure with database operations in the model layer.
@@ -73,15 +75,18 @@ codomax-fullstack-blog/
     ├── .env.example
     ├── routes/
     │   ├── authRoutes.js
+    │   ├── userRoutes.js
     │   └── blogRoutes.js
     ├── controllers/
     │   ├── authController.js
+    │   ├── userController.js
     │   └── blogController.js
     ├── models/
     │   ├── User.js
     │   └── Blog.js
     ├── middleware/
     │   ├── auth.js
+    │   ├── authMiddleware.js
     │   └── errorHandler.js
     ├── utils/
     │   ├── HttpError.js
@@ -91,7 +96,9 @@ codomax-fullstack-blog/
     ├── data/
     │   ├── users.json
     │   └── blogs.json
-    ├── tests/api.test.js
+    ├── tests/
+    │   ├── api.test.js
+    │   └── session.test.js
     └── postman/Codomax-Module-2.postman_collection.json
 ```
 
@@ -127,7 +134,7 @@ The server uses port 5000 and the local loopback interface. For a custom port, u
 2. Login using the registered email and password, then select **Open dashboard**.
 3. Choose **Create new blog**, complete the form, and publish.
 4. Your saved post appears in the dashboard and on Home.
-5. Use **Edit**, or **Delete** and confirm. **Logout** clears the tab's login session.
+5. Use **View** (including your drafts), **Edit**, or **Delete** and confirm. **Logout** clears the tab's login session and returns to Login.
 
 The application has no default account or password. A new database starts with empty users/blogs tables. Register as **Jafeer Abdullah** to publish under that name. Other users publish under their registered names.
 
@@ -135,7 +142,7 @@ For an offline cover image, use `images/code-workspace.jpg`, `images/design-pers
 
 ### Original Module 1 demo
 
-The original sample workspace remains at **http://localhost:5000/frontend/dashboard.html?demo=1**. A logged-out dashboard also opens this sample workspace. Demo editor links explicitly carry `demo=1`.
+The original sample workspace remains at **http://localhost:5000/frontend/dashboard.html?demo=1**. The regular dashboard redirects logged-out users to Login. Only explicit `demo=1` links open the sample workspace, and demo editor/View links preserve that flag.
 
 Demo editing, publishing, deleting, and **Reset demo posts** use the original tab's sessionStorage. They never modify backend posts/accounts, and the interface labels this mode clearly. While logged in, open the regular dashboard to manage real saved posts. The regular Home feed uses API posts only. Open Home with `?demo=1` to read the preserved sample stories.
 
@@ -167,6 +174,7 @@ Authorization: Bearer YOUR_LOGIN_TOKEN
 | POST | /api/auth/register | Public | Create account |
 | POST | /api/auth/login | Public | JWT and safe user information |
 | GET | /api/auth/me | JWT | Current user |
+| GET | /api/users/profile | JWT | Account details and own-blog statistics |
 | GET | /api/blogs | Public | Published posts, newest first; optional search/category filters |
 | GET | /api/blogs/user | JWT | Own published posts and drafts |
 | GET | /api/blogs/mine | JWT | Preserved alias for /api/blogs/user |
@@ -193,7 +201,7 @@ Authorization: Bearer YOUR_LOGIN_TOKEN
 { "message": "User registered successfully" }
 ```
 
-Names are required and limited to 80 characters. Emails are trimmed, lowercased, validated, and unique. Passwords require eight characters and cannot exceed 72 UTF-8 bytes, matching bcrypt's input limit. The bcrypt cost is 12.
+Names require a letter, allow Unicode, and are limited to 80 characters without control characters. Emails are trimmed, lowercased, validated, and unique. New passwords require at least eight characters including an uppercase letter, a lowercase letter, and a number; they cannot exceed 72 UTF-8 bytes, matching bcrypt's input limit. The bcrypt cost is 12. Existing accounts can still log in with their original passwords.
 
 ### Login
 
@@ -213,7 +221,7 @@ Names are required and limited to 80 characters. Emails are trimmed, lowercased,
 }
 ```
 
-The frontend stores only the JWT and safe user information in the current tab's sessionStorage. The server checks token signature, expiry, issuer, audience, and user record. Passwords are never stored by the frontend.
+The frontend stores only the JWT and safe user information in the current tab's sessionStorage. The server checks token signature, expiry, issuer, audience, subject, and user record. Private pages verify the token with Express before showing content. Expiry and authenticated 401 responses clear the session; protected pages return to Login. Passwords are never stored by the frontend.
 
 ### Create or update a blog
 
@@ -269,9 +277,9 @@ From backend/:
 npm test
 ```
 
-Fifteen API test groups cover server responses, validation, hashing, email normalization, concurrent duplicate rejection, JWT, ownership, private drafts, concurrent writes, persistence across restarting the HTTP server, public details, pagination, safe database errors, CORS, the user endpoint, partial updates, literal search, combined filters, and filtered pagination. Tests use the real Supabase JavaScript SDK against an isolated local PostgREST HTTP fixture and ephemeral ports. They never use your live Supabase credentials or change the historical JSON files. Live database verification is a separate command described below.
+Twenty-five automated tests cover the existing API features plus registration strength, Unicode names, safe profiles, exact statistics beyond the database response limit, invalid JWT claims, deleted accounts, token storage, expiry, authenticated 401 responses, logout, blocked storage, and safe login return links. API tests use the real Supabase JavaScript SDK against an isolated local PostgREST HTTP fixture and ephemeral ports; session tests exercise the actual frontend API module with browser storage/navigation and a controlled clock. Tests never use your live Supabase credentials or change the historical JSON files. Live database verification is a separate command described below.
 
-Browser verification covers register → login → create → edit → read → delete, draft status, search/filter controls, delete cancellation, original demo interactions, and responsive layouts from 320px to 1920px. The original CSS rules are retained, with a small addition for the search controls. Browser checks using the local fixture verify the UI/API flow; they do not establish live Supabase connectivity.
+Browser verification covers protected-page redirects, registration/login, profiles, dashboard statistics, create/edit/View/delete, draft status, search/filter controls, delete cancellation, token expiry, logout/history navigation, original demo interactions, and responsive layouts from 320px to 1920px. The original CSS rules are retained, with additions for search and profile controls. Browser checks using the local fixture verify the UI/API flow; they do not establish live Supabase connectivity.
 
 The nodemon configuration watches only source directories and ignores data writes. A Chokidar 4 override avoids the older watcher's vulnerable brace-pattern dependency; its startup and automatic restart are verified.
 
@@ -291,7 +299,7 @@ Supabase hosts the PostgreSQL database. Only the Express backend uses `@supabase
 
 ### Database setup
 
-1. Run `backend/database/module-3.sql` in your Supabase SQL editor if the existing users/blogs schema has not been created. Module 4 uses the same schema and needs no migration.
+1. Run `backend/database/module-3.sql` in your Supabase SQL editor if the existing users/blogs schema has not been created. Modules 4 and 5 use the same schema and need no migration.
 2. Run `npm run setup-env` from `backend/` to create the ignored local `.env` and random JWT secret.
 3. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `backend/.env` locally. `.env.example` lists the settings without real credentials.
 4. Start Express with `npm run dev`. Keep database credentials in the backend; the browser calls only Express.
@@ -334,7 +342,7 @@ If the default npm registry returns HTTP 403 in this environment, `npm.cmd ci --
 
 `npm test` runs isolated API checks through a local PostgREST fixture. It does **not** establish a live Supabase connection or verify your project's database setup.
 
-`npm run test:supabase` starts Express on an ephemeral port and verifies live registration, email uniqueness, stored bcrypt hashes, login, JWT, blog creation, database field mappings, ordering, public details, literal search, category filtering, draft privacy, draft-preserving updates, the user endpoint, author ownership, timestamp updates, persistence after restarting the HTTP server, and deletion. It creates uniquely named test accounts/posts and removes only this run's records in a `finally` cleanup. A failure exits nonzero. No real keys or tokens are printed.
+`npm run test:supabase` starts Express on an ephemeral port and verifies live registration validation, email uniqueness, stored bcrypt hashes, correct/incorrect login, JWT, user profile details, exact own-blog statistics, blog creation, database field mappings, ordering, public details, literal search, category filtering, draft privacy, draft-preserving updates, the user endpoint, author ownership, timestamp updates, persistence after restarting the HTTP server, and deletion. It creates uniquely named test accounts/posts and removes only this run's records in a `finally` cleanup. A failure exits nonzero. No real keys or tokens are printed.
 
 After live verification, use the browser to register → login → create → open Blogs → Read more → edit → delete. Check that the original demo at `dashboard.html?demo=1` still works, and inspect the browser console. Missing IDs, unpublished blogs, and connection failures display readable details-page messages. Blog HTML is rendered as text.
 
@@ -422,3 +430,84 @@ git push -u origin module-4-crud
 ```
 
 Stop after pushing. Create the Pull Request **module-4-crud → main** manually; do not merge automatically.
+
+## Module 5 — Authentication & Dashboard
+
+Module 5 extends the existing application on `module-5-authentication`. Authentication remains **Frontend → Express API → JWT verification → Supabase users/blogs → protected dashboard**. It uses the existing tables and schema without a migration, Supabase Auth, or a new frontend framework.
+
+### Features
+
+- JWT authentication with bcrypt password hashes and stronger registration validation.
+- Protected dashboard, Create Blog, and Edit Blog pages that verify the session with Express before displaying private content.
+- A user profile with name, email, and account creation date.
+- A welcome message and Total Blogs, Published Blogs, and Draft Blogs statistics for the logged-in user.
+- **My Blogs** with title, category, date, status, and Edit/Delete/View actions, including authenticated View access to your drafts.
+- Logout that removes the token/user information and redirects to Login.
+- Tab-scoped sessions, idle expiry handling, authenticated 401 cleanup, and checks when returning to a page through browser history.
+- Safe local login return links, password visibility toggles, loading states, success messages, and field errors.
+- The original Module 1 demo remains available through explicit `?demo=1` links; Module 4 CRUD, search, and category filtering remain intact.
+
+### Authentication and session handling
+
+`backend/middleware/authMiddleware.js` reads `Authorization: Bearer TOKEN`, verifies HS256 signatures, issuer, audience, expiry, and a valid user UUID, and confirms the account still exists. Private APIs return 401 for missing/invalid/expired tokens or deleted accounts. `backend/middleware/auth.js` remains a compatibility import. Blog update/delete routes also check the stored author ID and return 403 for another user's blog.
+
+New registration passwords must have at least eight characters, an uppercase letter, a lowercase letter, and a number, with a maximum of 72 UTF-8 bytes. Names support Unicode letters, reject control characters, and allow up to 80 characters. Emails remain normalized and unique. Existing password hashes and the login flow remain compatible; incorrect credentials return the same generic error.
+
+The frontend retains `sessionStorage` for the current tab instead of persisting a login indefinitely in localStorage. It stores the JWT and only safe user fields (`id`, `name`, `email`, `createdDate`), and sends Bearer headers on protected requests. Passwords and backend keys are never stored there. Client-side token checks support the UI; Express performs the actual authentication. JWT lifetime remains controlled by `JWT_EXPIRES_IN` (default one hour). Logout clears the browser session; issued JWTs still expire according to that lifetime.
+
+Without a valid session, `dashboard.html`, `create-blog.html`, and `edit-blog.html` redirect to `login.html?next=...`. Successful login exposes an **Open dashboard** link that returns to the requested local workspace page. External or unsupported return destinations fall back to the dashboard. A failed server session check keeps private content hidden and offers a retry for connection errors.
+
+### Module 5 API documentation
+
+| Method | Endpoint | Access and response |
+| --- | --- | --- |
+| POST | /api/auth/register | Public. Validated name/email/password; returns 201 with `User registered successfully`. Invalid fields return 400; duplicate accounts return 409. |
+| POST | /api/auth/login | Public. Returns 200 with `Login successful`, JWT, and safe user information. Incorrect credentials return 401. |
+| GET | /api/auth/me | JWT. Returns `{ "user": {...} }` including the account creation date. |
+| GET | /api/users/profile | JWT. Returns the logged-in user's safe account details and own-blog counts shown below. |
+| GET | /api/blogs/user | JWT. Returns `{ "blogs": [...] }` containing only your published posts and drafts. |
+
+`GET /api/users/profile` example response:
+
+```json
+{
+  "id": "USER_UUID",
+  "name": "Jafeer Abdullah",
+  "email": "jafeer@example.com",
+  "createdDate": "2026-10-11T08:00:00.000Z",
+  "totalBlogs": 3,
+  "publishedBlogs": 2,
+  "draftBlogs": 1
+}
+```
+
+The profile ID always comes from the verified JWT; request parameters cannot select another account. Counts use exact database queries restricted by `author_id`, including records beyond Supabase's per-response limit. Password hashes, JWT signing secrets, and Supabase credentials are excluded from responses.
+
+### Test and complete Module 5
+
+From this existing checkout:
+
+```sh
+git switch module-5-authentication
+cd backend
+npm ci
+npm test
+npm run test:supabase
+npm run dev
+```
+
+The live command requires the ignored, locally configured `backend/.env` and the existing Module 3 schema. It verifies registration strength, hashing, correct/incorrect login, profile fields, per-user counts, and all existing CRUD/search/filter behaviors, then removes only the uniquely identified accounts/posts created by that run.
+
+Open `http://localhost:5000/frontend/`. Check that the three private pages redirect to Login without a session. Register/login, view your profile and statistics, create published/draft blogs, use View/Edit/Delete, then log out and try reopening a private page or returning through browser history. A second account must see only its own profile/blogs and cannot edit/delete the first user's posts. Verify the original demo through `dashboard.html?demo=1` and check the browser console.
+
+After testing, from the project root:
+
+```sh
+git status
+git check-ignore backend/.env
+git add .
+git commit -m "Complete Module 5 - Authentication and Dashboard"
+git push -u origin module-5-authentication
+```
+
+Stop after pushing. Create the Pull Request **module-5-authentication → main** manually; do not merge automatically.

@@ -20,9 +20,11 @@ function registerInput(body) {
   const password = typeof body.password === "string" ? body.password : "";
   const errors = {};
   if (!name || name.length > 80) errors.name = "Enter a name between 1 and 80 characters.";
+  else if (!/\p{L}/u.test(name) || /[\u0000-\u001f\u007f]/.test(name)) errors.name = "Use a name containing a letter, without control characters.";
   if (!emailValid(email)) errors.email = "Enter a valid email address.";
   if (!password.trim() || password.length < 8) errors.password = "Use a password with at least 8 characters.";
   else if (Buffer.byteLength(password, "utf8") > 72) errors.password = "Password is too long. Use a shorter password.";
+  else if (!/\p{Lu}/u.test(password) || !/\p{Ll}/u.test(password) || !/\p{N}/u.test(password)) errors.password = "Use at least 8 characters, including an uppercase letter, a lowercase letter, and a number.";
   fail(errors);
   return { name, email, password };
 }

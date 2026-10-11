@@ -269,3 +269,98 @@ test("Module 4 filtered results page through all matching database rows", async 
     assert.equal((await call("/api/blogs?search=Searchable&category=Technology")).body.blogs.length, 1002);
   } finally { fixture.tables.blogs.splice(originalCount); }
 });
+
+test("Module 5 registration rejects weak passwords and invalid names without changing existing login rules", async () => {
+  for (const password of ["abcdefgh", "ABCDEFGH", "12345678", "lowercase123", "UPPERCASE123", "NoDigitsHere"]) {
+    const result = await call("/api/auth/register", { method: "POST", body: { name: "New Writer", email: "weak@example.com", password } });
+    assert.equal(result.status, 400);
+    assert.ok(result.body.errors.password);
+  }
+  for (const name of [" ", "12345", "Writer\u0000Name", "x".repeat(81)]) {
+    assert.equal((await call("/api/auth/register", { method: "POST", body: { name, email: "name@example.com", password } })).status, 400);
+  }
+  const registered = await call("/api/auth/register", { method: "POST", body: { name: "தமிழ் எழுத்தாளர்", email: "unicode@example.com", password: "Secure-pass123" } });
+  assert.equal(registered.status, 201);
+  const login = await call("/api/auth/login", { method: "POST", body: { email: "unicode@example.com", password: "Secure-pass123" } });
+  assert.equal(login.status, 200);
+  assert.equal(login.body.user.name, "தமிழ் எழுத்தாளர்");
+});
+
+test("Module 5 profile returns safe account details and exact own-blog statistics, including drafts", async () => {
+  assert.equal((await call("/api/users/profile")).status, 401);
+  assert.equal((await call("/api/users/profile", { bearer: "invalid" })).status, 401);
+  const owner = (await call("/api/auth/me", { bearer: token })).body.user;
+  const ids = [];
+  try {
+    const before = await call("/api/users/profile", { bearer: token });
+    assert.equal(before.status, 200);
+    for (const status of ["published", "draft"]) {
+      const created = await call("/api/blogs", { method: "POST", bearer: token, body: { ...blogInput, title: `Profile ${status}`, status } });
+      assert.equal(created.status, 201);
+      ids.push(created.body.blog.id);
+    }
+    const result = await call(`/api/users/profile?id=${fixture.tables.users.find(user => user.email === "other@example.com").id}`, { bearer: token });
+    assert.equal(result.status, 200);
+    assert.equal(result.body.id, owner.id);
+    assert.equal(result.body.name, owner.name);
+    assert.equal(result.body.email, owner.email);
+    assert.equal(result.body.createdDate, fixture.tables.users.find(user => user.id === owner.id).created_at);
+    assert.equal(result.body.totalBlogs, before.body.totalBlogs + 2);
+    assert.equal(result.body.publishedBlogs, before.body.publishedBlogs + 1);
+    assert.equal(result.body.draftBlogs, before.body.draftBlogs + 1);
+    assert.ok(!("password" in result.body));
+    assert.ok(!JSON.stringify(result.body).includes(fixture.tables.users[0].password));
+    assert.ok(!JSON.stringify(result.body).includes(fixture.key));
+    const other = await call("/api/users/profile", { bearer: otherToken });
+    assert.equal(other.body.totalBlogs, 0);
+    assert.equal(other.body.publishedBlogs, 0);
+    assert.equal(other.body.draftBlogs, 0);
+    await call(`/api/blogs/${ids[1]}`, { method: "PUT", bearer: token, body: { status: "published" } });
+    const published = (await call("/api/users/profile", { bearer: token })).body;
+    assert.equal(published.publishedBlogs, result.body.publishedBlogs + 1);
+    assert.equal(published.draftBlogs, result.body.draftBlogs - 1);
+  } finally {
+    for (const id of ids) await call(`/api/blogs/${id}`, { method: "DELETE", bearer: token });
+  }
+});
+
+test("Module 5 middleware rejects invalid claims, wrong signatures and missing accounts across protected routes", async () => {
+  const jwt = require("jsonwebtoken");
+  const config = require("../config");
+  const { randomUUID } = require("node:crypto");
+  const userId = (await call("/api/auth/me", { bearer: token })).body.user.id;
+  const options = { subject: userId, issuer: config.jwtIssuer, audience: config.jwtAudience, expiresIn: "1h" };
+  const invalid = [
+    jwt.sign({}, config.jwtSecret, { ...options, subject: "invalid-id" }),
+    jwt.sign({}, config.jwtSecret, { ...options, subject: randomUUID() }),
+    jwt.sign({}, config.jwtSecret, { ...options, issuer: "another-app" }),
+    jwt.sign({}, config.jwtSecret, { ...options, audience: "another-client" }),
+    jwt.sign({}, config.jwtSecret, { ...options, algorithm: "HS384" }),
+    jwt.sign({}, "a-different-signing-secret", options),
+    jwt.sign({}, config.jwtSecret, { ...options, expiresIn: -1 }),
+    jwt.sign({}, config.jwtSecret, { ...options, notBefore: "1h" }),
+    jwt.sign({}, config.jwtSecret, { subject: userId, issuer: config.jwtIssuer, audience: config.jwtAudience })
+  ];
+  for (const bearer of invalid) {
+    for (const route of ["/api/auth/me", "/api/users/profile", "/api/blogs/user"]) assert.equal((await call(route, { bearer })).status, 401);
+  }
+  const temporary = await call("/api/auth/login", { method: "POST", body: { email: "unicode@example.com", password: "Secure-pass123" } });
+  const index = fixture.tables.users.findIndex(user => user.id === temporary.body.user.id);
+  const [removed] = fixture.tables.users.splice(index, 1);
+  try { assert.equal((await call("/api/users/profile", { bearer: temporary.body.token })).status, 401); }
+  finally { fixture.tables.users.splice(index, 0, removed); }
+});
+
+test("Module 5 profile statistics count rows beyond the database response limit", async () => {
+  const originalCount = fixture.tables.blogs.length;
+  const template = fixture.tables.blogs[0];
+  const { randomUUID } = require("node:crypto");
+  const before = (await call("/api/users/profile", { bearer: token })).body;
+  fixture.tables.blogs.push(...Array.from({ length: 1002 }, (_, index) => ({ ...template, id: randomUUID(), status: index % 2 ? "draft" : "published" })));
+  try {
+    const profile = (await call("/api/users/profile", { bearer: token })).body;
+    assert.equal(profile.totalBlogs, before.totalBlogs + 1002);
+    assert.equal(profile.publishedBlogs, before.publishedBlogs + 501);
+    assert.equal(profile.draftBlogs, before.draftBlogs + 501);
+  } finally { fixture.tables.blogs.splice(originalCount); }
+});
